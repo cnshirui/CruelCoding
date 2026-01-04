@@ -349,14 +349,7 @@
                     const rank = cData.rank !== undefined ? cData.rank : '';
                     const bgColor = cData.bgColor;
                     
-                    const styleAttr = bgColor ? `style="background-color: ${bgColor}; color: white;"` : '';
-                    
-                    // We can also adjust text color if bgColor is light, but user said 'deep green' etc.
-                    // Usually user wants black text on yellow/orange, white on deep green.
-                    // Simple heuristic: if deep green (#228B22 or similar) -> white text.
-                    // But let's just set the BG. The browser will handle text color (default black) unless we change it.
-                    // The user's classes had `color: white` for deep green.
-                    // Let's rely on the extraction.
+                    const styleAttr = bgColor ? `style="background-color: ${bgColor}; color: black;"` : '';
                     
                     html += `<td ${styleAttr}>${rank}</td>`;
                     html += `<td>${score}</td>`;
