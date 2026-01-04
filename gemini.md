@@ -37,9 +37,19 @@
 -   **Font:** Applied a CSS class `.clear-font` using a font stack of `JetBrains Mono`, `Consolas`, `monospace` to relevant columns.
 -   **Filtering:** Added a keyword check to stop parsing the Excel file when footer text (e.g., "-1: absent/zero") is encountered.
 
+### 3. Localization & Formatting
+**Requirements:**
+-   **Rename:** Change page title and heading to "残酷刷题群".
+-   **Simplify UI:** Remove the search box.
+-   **Date Formatting:** Change `CruelDate` format from `MM/DD/YYYY` to `YYYY-MM-DD`.
+
+**Implementation Details:**
+-   Updated HTML tags (`<title>`, `<h1>`) and removed search-related code.
+-   Added date parsing logic in the JavaScript `fetchData` function to reformat strings using split/join and padding.
+
 ## Final Output
 A single, self-contained `index.html` file that:
 -   Loads dependencies (SheetJS) via CDN.
 -   Fetches raw data files from GitHub.
 -   Processes and merges data in the browser.
--   Displays a clean, sortable, and searchable leaderboard.
+-   Displays a clean, sortable leaderboard named "残酷刷题群" with standardized date formats.
