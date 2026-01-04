@@ -83,6 +83,7 @@
             position: sticky;
             top: 0;
             z-index: 10;
+            line-height: 1.1;
         }
         /* Adjust sticky positioning for two-row header if needed, 
            but simple sticky top:0 works if rows are grouped in thead. 
@@ -94,7 +95,7 @@
             top: 0;
         }
         thead tr:nth-child(2) th {
-            top: 38px; /* Approx height of first row */
+            top: 25px; /* Reduced offset for minimized headers */
              z-index: 9;
         }
 
@@ -656,6 +657,8 @@
                 // Bottom Row: Rank and Score
                 const thRank = document.createElement('th');
                 thRank.innerText = 'Rank';
+                thRank.style.padding = '2px 4px';
+                thRank.style.fontSize = '12px';
                 const keyRank = 'contest_' + meta.id + '_rank';
                 thRank.onclick = () => sortTable(keyRank);
                 if (currentSort.key === keyRank) {
@@ -665,6 +668,8 @@
 
                 const thScore = document.createElement('th');
                 thScore.innerText = 'Score';
+                thScore.style.padding = '2px 4px';
+                thScore.style.fontSize = '12px';
                 const keyScore = 'contest_' + meta.id + '_score';
                 thScore.onclick = () => sortTable(keyScore);
                 if (currentSort.key === keyScore) {
