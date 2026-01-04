@@ -344,7 +344,7 @@
                     }
 
                     const link = titleSlug ? `https://leetcode.com/problems/${titleSlug}` : '#';
-                    const titleHtml = titleSlug ? `<a href="${link}" target="_blank">${displayTitle}</a>` : displayTitle;
+                    const idHtml = titleSlug ? `<a href="${link}" target="_blank">${id}</a>` : id;
 
                     // Youtube Link
                     const ytHtml = youtube && youtube !== '-' ? `<a href="${youtube}" target="_blank">Watch</a>` : '';
@@ -353,8 +353,9 @@
                         date: formattedDate,
                         sortDate: sortDate,
                         id: parseInt(id), // store as number for sorting
+                        idHtml: idHtml,
                         title: title || '', // raw title for sorting
-                        titleHtml: titleHtml,
+                        displayTitle: displayTitle,
                         tags: tags.join(', '),
                         level: level,
                         difficulty: difficulty ? parseFloat(difficulty) : 0, // numeric for sort
@@ -413,8 +414,8 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${row.date}</td>
-                    <td>${row.id}</td>
-                    <td class="clear-font" style="text-align: left;">${row.titleHtml}</td>
+                    <td style="text-align: right;">${row.idHtml}</td>
+                    <td class="clear-font" style="text-align: left;">${row.displayTitle}</td>
                     <td style="text-align: left;">${row.tags}</td>
                     <td>${row.level}</td>
                     <td>${row.difficulty || ''}</td>
