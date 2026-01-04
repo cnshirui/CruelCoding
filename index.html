@@ -13,6 +13,40 @@
         h1 {
             text-align: center;
         }
+        
+        /* Tab Styles */
+        .tab-container {
+            text-align: left;
+            margin-bottom: 20px;
+            margin-left: 0;
+        }
+        .tab-button {
+            padding: 5px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            outline: none;
+            border-radius: 5px 5px 0 0;
+            margin: 0 5px;
+        }
+        .tab-button.active {
+            background-color: #fff;
+            border-bottom: 2px solid white; /* Hide the border below */
+            font-weight: bold;
+            position: relative;
+            top: 1px; /* Overlap border */
+        }
+        .tab-content {
+            display: none;
+            border-top: 1px solid #ccc;
+            padding-top: 5px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
         #loading {
             text-align: center;
             font-size: 1.2em;
@@ -21,7 +55,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 5px;
             font-size: 14px;
         }
         th, td {
@@ -85,25 +119,65 @@
 </head>
 <body>
 
-    <h1>残酷刷题群</h1>
-
-    <div id="loading">Loading data...</div>
-
-    <div style="text-align: center; margin-bottom: 10px;">
-        <button id="loadMoreBtn" onclick="loadMoreWeeks()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; display: none;">Load More Weeks</button>
+    <div class="tab-container">
+        <button class="tab-button active" onclick="openTab('scoreboard')">残酷排行榜</button>
+        <button class="tab-button" onclick="openTab('daily')">每日打卡</button>
     </div>
 
-    <div style="overflow-x: auto;">
-        <table id="scoreTable" style="display:none; width: auto; min-width: 100%;">
-            <thead id="tableHead">
-                <!-- Headers will be generated dynamically -->
-            </thead>
-            <tbody id="tableBody">
-            </tbody>
-        </table>
+    <!-- Tab 1: Scoreboard -->
+    <div id="scoreboard" class="tab-content active">
+        <div id="loading">Loading data...</div>
+
+        <div style="text-align: left; margin-top: 10px; margin-bottom: 2px;">
+            <button id="loadMoreBtn" onclick="loadMoreWeeks()" style="padding: 5px 15px; font-size: 14px; cursor: pointer; display: none;">Load More Weeks</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table id="scoreTable" style="display:none; width: auto; min-width: 100%;">
+                <thead id="tableHead">
+                    <!-- Headers will be generated dynamically -->
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 2: Daily Check-in (Placeholder) -->
+    <div id="daily" class="tab-content">
+        <div style="text-align: center; margin-top: 20px;">
+            <h2>每日打卡</h2>
+            <p>Coming Soon...</p>
+        </div>
     </div>
 
     <script>
+        function openTab(tabName) {
+            const tabs = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            const buttons = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("active");
+            // Find the button that calls this function with this tabName? 
+            // Simplified: we can just check innerText or use event.currentTarget if we passed event.
+            // Let's just loop and match based on index or onclick attr.
+            // Easiest is to pass 'event' to openTab(event, 'tabName') but we only changed HTML structure.
+            // Let's fix button active state simply by matching text or order.
+            // Or better, let's just make the buttons queryable.
+            
+            // Hardcoded for these two buttons for now
+            if (tabName === 'scoreboard') {
+                buttons[0].classList.add("active");
+            } else {
+                buttons[1].classList.add("active");
+            }
+        }
+
         const URLs = {
             excel: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/index.xlsx',
             cruelId: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/getRank/id.in',
