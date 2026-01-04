@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LC Score Board</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+        }
+        #loading {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+            user-select: none;
+            position: sticky;
+            top: 0;
+        }
+        th:hover {
+            background-color: #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .search-container {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input[type="text"] {
+            padding: 8px;
+            width: 300px;
+            font-size: 16px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <h1>LC Score Board</h1>
+
+    <div id="loading">Loading data...</div>
+
+    <div class="search-container" style="display:none;" id="searchBox">
+        <input type="text" id="searchInput" placeholder="Search for names..." onkeyup="filterTable()">
+    </div>
+
+    <table id="scoreTable" style="display:none;">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">Rank</th>
+                <th onclick="sortTable(1)">Username</th>
+                <th onclick="sortTable(2)">Days</th>
+                <th onclick="sortTable(3)">Rating</th>
+                <th onclick="sortTable(4)">Score</th>
+                <th onclick="sortTable(5)">CruelID</th>
+                <th onclick="sortTable(6)">CruelDate</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+    </table>
+
+    <script>
+        const URLs = {
+            excel: 'https://github.com/wisdompeak/lc-score-board/raw/refs/heads/gh-pages/generateEXCEL/index.xlsx',
+            cruelId: 'https://github.com/wisdompeak/lc-score-board/raw/refs/heads/gh-pages/getRank/id.in',
+            cruelDate: 'https://github.com/wisdompeak/lc-score-board/raw/refs/heads/gh-pages/generateEXCEL/Data/Members/In.txt'
+        };
+
+        let tableData = [];
+
+        async function fetchData() {
+            try {
+                // Fetch all data in parallel
+                const [excelParams, idParams, dateParams] = await Promise.all([
+                    fetch(URLs.excel).then(res => res.arrayBuffer()),
+                    fetch(URLs.cruelId).then(res => res.text()),
+                    fetch(URLs.cruelDate).then(res => res.text())
+                ]);
+
+                // 1. Process CruelID
+                // Map Username -> ID (1-based index)
+                const idMap = new Map();
+                const idLines = idParams.split('\n');
+                idLines.forEach((line, index) => {
+                    const name = line.trim();
+                    if (name) {
+                        idMap.set(name, index + 1);
+                    }
+                });
+
+                // 2. Process CruelDate
+                // Map Username -> Date string
+                const dateMap = new Map();
+                const dateLines = dateParams.split('\n');
+                dateLines.forEach(line => {
+                    // Format: wisdompeak 09/02/2018 B
+                    const parts = line.trim().split(/\s+/);
+                    if (parts.length >= 2) {
+                        const name = parts[0];
+                        const date = parts[1];
+                        dateMap.set(name, date);
+                    }
+                });
+
+                // 3. Process Excel
+                const workbook = XLSX.read(excelParams, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                // Use header:1 to get raw array of arrays
+                const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                // Find start of data.
+                // We saw in analysis that data starts around row index 11 (where column 0 is '1')
+                // Or we can look for the row where the second column (index 1) is a string and previous rows were NaN or headers.
+                // A safe heuristic: look for the first row where column 0 is explicitly the number 1.
+                let dataStartIndex = -1;
+                for (let i = 0; i < rawData.length; i++) {
+                    if (rawData[i][0] == 1) { // loose equality for string '1' or number 1
+                        dataStartIndex = i;
+                        break;
+                    }
+                }
+
+                if (dataStartIndex === -1) {
+                    console.error("Could not find start of data in Excel.");
+                    // Fallback to row 11 based on manual inspection if heuristic fails
+                    dataStartIndex = 11;
+                }
+
+                const processedData = [];
+                
+                for (let i = dataStartIndex; i < rawData.length; i++) {
+                    const row = rawData[i];
+                    if (!row || row.length < 2) continue; // Skip empty rows
+
+                    const username = row[1]; // Column 1 is Username
+                    if (!username) continue;
+
+                    const rank = row[0];   // Column 0
+                    const days = row[2];   // Column 2
+                    const rating = row[3]; // Column 3
+                    const score = row[4];  // Column 4
+
+                    // Lookup extra data
+                    const cruelId = idMap.get(username) || ''; 
+                    const cruelDate = dateMap.get(username) || '';
+
+                    processedData.push({
+                        rank: rank,
+                        username: username,
+                        days: days,
+                        rating: rating,
+                        score: score,
+                        cruelId: cruelId,
+                        cruelDate: cruelDate
+                    });
+                }
+
+                tableData = processedData;
+                renderTable(tableData);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('searchBox').style.display = 'block';
+                document.getElementById('scoreTable').style.display = 'table';
+
+            } catch (error) {
+                console.error("Error fetching or processing data:", error);
+                document.getElementById('loading').textContent = "Error loading data. Check console for details.";
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.rank || ''}</td>
+                    <td>${row.username || ''}</td>
+                    <td>${row.days || ''}</td>
+                    <td>${row.rating || ''}</td>
+                    <td>${row.score || ''}</td>
+                    <td>${row.cruelId || ''}</td>
+                    <td>${row.cruelDate || ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterTable() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const filteredData = tableData.filter(row => {
+                return (String(row.username).toLowerCase().includes(filter));
+            });
+            renderTable(filteredData);
+        }
+
+        let sortDirection = {}; // Store sort direction for each column
+
+        function sortTable(columnIndex) {
+            const keys = ['rank', 'username', 'days', 'rating', 'score', 'cruelId', 'cruelDate'];
+            const key = keys[columnIndex];
+            
+            if (!sortDirection[key]) sortDirection[key] = 'asc';
+            else sortDirection[key] = sortDirection[key] === 'asc' ? 'desc' : 'asc';
+
+            const dir = sortDirection[key];
+
+            tableData.sort((a, b) => {
+                let valA = a[key];
+                let valB = b[key];
+
+                // Handle numeric sorting
+                const numA = parseFloat(valA);
+                const numB = parseFloat(valB);
+                
+                // If both are numbers (and not NaN), compare as numbers
+                // Special check: 'rank' might be a number, 'rating' might be a number.
+                // 'cruelId' is number. 'cruelDate' is string.
+                
+                const isNumeric = !isNaN(numA) && !isNaN(numB) && key !== 'cruelDate' && key !== 'username';
+                
+                if (isNumeric) {
+                    valA = numA;
+                    valB = numB;
+                } else {
+                    // String comparison
+                    valA = valA ? String(valA).toLowerCase() : '';
+                    valB = valB ? String(valB).toLowerCase() : '';
+                }
+
+                if (valA < valB) return dir === 'asc' ? -1 : 1;
+                if (valA > valB) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            renderTable(tableData);
+        }
+
+        // Initialize
+        fetchData();
+
+    </script>
+</body>
+</html>
