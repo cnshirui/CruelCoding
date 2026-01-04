@@ -143,11 +143,24 @@
         </div>
     </div>
 
-    <!-- Tab 2: Daily Check-in (Placeholder) -->
+    <!-- Tab 2: Daily Check-in -->
     <div id="daily" class="tab-content">
-        <div style="text-align: center; margin-top: 20px;">
-            <h2>每日打卡</h2>
-            <p>Coming Soon...</p>
+        <div style="overflow-x: auto;">
+            <table id="dailyTable" style="width: auto; min-width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>ID</th>
+                        <th>Question</th>
+                        <th>Tags</th>
+                        <th>Level</th>
+                        <th>Difficulty</th>
+                        <th>YouTube Link</th>
+                    </tr>
+                </thead>
+                <tbody id="dailyTableBody">
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -181,13 +194,162 @@
         const URLs = {
             excel: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/index.xlsx',
             cruelId: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/getRank/id.in',
-            cruelDate: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/Data/Members/In.txt'
+            cruelDate: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/Data/Members/In.txt',
+            dailyCsv: 'https://api.allorigins.win/raw?url=https://docs.google.com/spreadsheets/d/1kBGyRsSdbGDu7DzjQcC-UkZjZERdrP8-_QyVGXHSrB8/export?format=csv&gid=0',
+            leetcodeJson: 'leetcode_questions.json'
         };
 
         let tableData = [];
         let contestMeta = []; 
         let visibleWeeks = 3;
         let currentSort = { key: null, dir: null };
+        let dailyDataLoaded = false;
+        let leetcodeMap = null;
+
+        function openTab(tabName) {
+            const tabs = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            const buttons = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("active");
+            
+            if (tabName === 'scoreboard') {
+                buttons[0].classList.add("active");
+            } else {
+                buttons[1].classList.add("active");
+                if (!dailyDataLoaded) {
+                    fetchDailyData();
+                }
+            }
+        }
+
+        async function fetchDailyData() {
+            const tbody = document.getElementById('dailyTableBody');
+            tbody.innerHTML = '<tr><td colspan="7">Loading daily challenges...</td></tr>';
+
+            try {
+                // Fetch LeetCode JSON if not already
+                if (!leetcodeMap) {
+                    const res = await fetch(URLs.leetcodeJson);
+                    if (!res.ok) throw new Error("Failed to fetch leetcode questions");
+                    const questions = await res.json();
+                    leetcodeMap = new Map();
+                    questions.forEach(q => {
+                        // Map using frontendId (string) and id (int) just in case
+                        leetcodeMap.set(String(q.questionFrontendId), q);
+                        leetcodeMap.set(String(q.id), q);
+                    });
+                }
+
+                // Fetch CSV
+                const csvRes = await fetch(URLs.dailyCsv);
+                if (!csvRes.ok) throw new Error("Failed to fetch daily CSV");
+                const csvText = await csvRes.text();
+
+                const workbook = XLSX.read(csvText, { type: 'string' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // rawData is array of arrays.
+                // Header is likely row 6 (index 6) based on previous inspection, or we just look for "Date" in col 2.
+                // Inspection showed: No., Title, Date, Tag 1, Tag 2, Level, difficulty, YouTube...
+                
+                // Let's scan for the header row or just assume standard data flow.
+                // We know data rows have a date in Col 2.
+                
+                const processedRows = [];
+                
+                rawData.forEach((row, index) => {
+                    // Row is array. Col C is index 2.
+                    if (!row || row.length < 3) return;
+                    
+                    const dateVal = row[2];
+                    if (!dateVal) return;
+
+                    // Check if it looks like a date (simple check)
+                    // It might be "Date" (header) or a real date.
+                    if (String(dateVal).trim().toLowerCase() === 'date') return;
+
+                    const id = row[0];
+                    const qInfo = leetcodeMap.get(String(id));
+                    
+                    let title = row[1];
+                    let titleSlug = '';
+                    let tags = [];
+                    let level = row[5] || ''; // Level
+                    let difficulty = row[6] || ''; // numeric difficulty / rating
+                    
+                    if (qInfo) {
+                        title = qInfo.title;
+                        titleSlug = qInfo.titleSlug;
+                        // Use LeetCode difficulty if Level is missing or to standardize?
+                        // Spreadsheet Level: "Medium"
+                        // LeetCode difficulty: "MEDIUM"
+                        if (!level) level = qInfo.difficulty;
+                        
+                        if (qInfo.topicTags) {
+                            tags = qInfo.topicTags.map(t => t.name);
+                        }
+                    } else {
+                        // Fallback tags from spreadsheet
+                        const t1 = row[3];
+                        const t2 = row[4];
+                        if (t1) tags.push(t1);
+                        if (t2) tags.push(t2);
+                    }
+
+                    const youtube = row[7];
+                    
+                    // Link
+                    const link = titleSlug ? `https://leetcode.com/problems/${titleSlug}` : '#';
+                    const titleHtml = titleSlug ? `<a href="${link}" target="_blank">${title}</a>` : title;
+
+                    // Youtube Link
+                    const ytHtml = youtube && youtube !== '-' ? `<a href="${youtube}" target="_blank">Watch</a>` : '';
+
+                    processedRows.push({
+                        date: dateVal,
+                        id: id,
+                        titleHtml: titleHtml,
+                        tags: tags.join(', '),
+                        level: level,
+                        difficulty: difficulty,
+                        ytHtml: ytHtml
+                    });
+                });
+
+                // Render
+                tbody.innerHTML = '';
+                // Sort by Date Descending? The user didn't specify, but usually daily check-ins are chronological.
+                // The CSV seems to be reverse chronological (newest first)?
+                // Let's keep CSV order for now.
+                
+                processedRows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.date}</td>
+                        <td>${row.id}</td>
+                        <td class="clear-font" style="text-align: left;">${row.titleHtml}</td>
+                        <td style="text-align: left; white-space: normal;">${row.tags}</td>
+                        <td>${row.level}</td>
+                        <td>${row.difficulty}</td>
+                        <td>${row.ytHtml}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                dailyDataLoaded = true;
+
+            } catch (error) {
+                console.error("Error loading daily data:", error);
+                tbody.innerHTML = `<tr><td colspan="7" style="color: red;">Error loading data: ${error.message}</td></tr>`;
+            }
+        }
 
         async function fetchData() {
             try {
