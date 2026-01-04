@@ -66,6 +66,14 @@
         th:hover {
             background-color: #ddd;
         }
+        th.sort-asc::after {
+            content: " ▲";
+            font-size: 0.8em;
+        }
+        th.sort-desc::after {
+            content: " ▼";
+            font-size: 0.8em;
+        }
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
@@ -105,6 +113,7 @@
         let tableData = [];
         let contestMeta = []; 
         let visibleWeeks = 3;
+        let currentSort = { key: null, dir: null };
 
         async function fetchData() {
             try {
@@ -305,6 +314,9 @@
                     th.classList.add('georgia-font');
                 }
                 th.onclick = () => sortTable(h.key);
+                if (currentSort.key === h.key) {
+                    th.classList.add(currentSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
                 tr1.appendChild(th);
             });
 
@@ -321,12 +333,20 @@
                 // Bottom Row: Rank and Score
                 const thRank = document.createElement('th');
                 thRank.innerText = 'Rank';
-                thRank.onclick = () => sortTable('contest_' + meta.id + '_rank');
+                const keyRank = 'contest_' + meta.id + '_rank';
+                thRank.onclick = () => sortTable(keyRank);
+                if (currentSort.key === keyRank) {
+                    thRank.classList.add(currentSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
                 tr2.appendChild(thRank);
 
                 const thScore = document.createElement('th');
                 thScore.innerText = 'Score';
-                thScore.onclick = () => sortTable('contest_' + meta.id + '_score');
+                const keyScore = 'contest_' + meta.id + '_score';
+                thScore.onclick = () => sortTable(keyScore);
+                if (currentSort.key === keyScore) {
+                    thScore.classList.add(currentSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
                 tr2.appendChild(thScore);
             });
 
@@ -376,14 +396,15 @@
             renderTable(tableData);
         }
 
-        let sortDirection = {};
-
         function sortTable(key) {
-            
-            if (!sortDirection[key]) sortDirection[key] = 'asc';
-            else sortDirection[key] = sortDirection[key] === 'asc' ? 'desc' : 'asc';
+            if (currentSort.key === key) {
+                currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.key = key;
+                currentSort.dir = 'asc';
+            }
 
-            const dir = sortDirection[key];
+            const dir = currentSort.dir;
 
             tableData.sort((a, b) => {
                 let valA, valB;
@@ -425,7 +446,8 @@
                 if (nA > nB) return dir === 'asc' ? 1 : -1;
                 return 0;
             });
-
+            
+            renderTableHeaders();
             renderTable(tableData);
         }
 
