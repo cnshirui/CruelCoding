@@ -27,11 +27,15 @@
         th, td {
             border: 1px solid #ddd;
             padding: 8px;
-            text-align: left;
+            text-align: center; /* Center align for better look with subheaders */
         }
         /* Using a clear font for distinguishing l and I */
         .clear-font {
             font-family: "JetBrains Mono", "Cascadia Code", "Source Code Pro", Menlo, Monaco, Consolas, "Courier New", monospace;
+            text-align: left; /* Keep left align for text fields */
+        }
+        td:nth-child(1) {
+             text-align: center; /* Rank center */
         }
         th {
             background-color: #f2f2f2;
@@ -39,7 +43,22 @@
             user-select: none;
             position: sticky;
             top: 0;
+            z-index: 10;
         }
+        /* Adjust sticky positioning for two-row header if needed, 
+           but simple sticky top:0 works if rows are grouped in thead. 
+           However, the second row needs top offset if we want both visible on scroll.
+           For simplicity, let's keep basic sticky or just sticky the whole thead.
+           Note: distinct top values needed for stacked sticky rows.
+        */
+        thead tr:nth-child(1) th {
+            top: 0;
+        }
+        thead tr:nth-child(2) th {
+            top: 38px; /* Approx height of first row */
+             z-index: 9;
+        }
+
         th:hover {
             background-color: #ddd;
         }
@@ -58,17 +77,13 @@
 
     <div id="loading">Loading data...</div>
 
+    <div style="text-align: center; margin-bottom: 10px;">
+        <button id="loadMoreBtn" onclick="loadMoreWeeks()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; display: none;">Load More Weeks</button>
+    </div>
+
     <table id="scoreTable" style="display:none;">
-        <thead>
-            <tr>
-                <th onclick="sortTable(0)">Rank</th>
-                <th onclick="sortTable(1)">CruelID</th>
-                <th onclick="sortTable(2)">CruelDate</th>
-                <th onclick="sortTable(3)">Username</th>
-                <th onclick="sortTable(4)">Days</th>
-                <th onclick="sortTable(5)">Rating</th>
-                <th onclick="sortTable(6)">Score</th>
-            </tr>
+        <thead id="tableHead">
+            <!-- Headers will be generated dynamically -->
         </thead>
         <tbody id="tableBody">
         </tbody>
@@ -82,6 +97,8 @@
         };
 
         let tableData = [];
+        let contestMeta = []; 
+        let visibleWeeks = 3;
 
         async function fetchData() {
             try {
@@ -106,7 +123,7 @@
                     const parts = line.trim().split(/\s+/);
                     if (parts.length >= 2) {
                         const name = parts[0];
-                        const dateStr = parts[1]; // Expected MM/DD/YYYY
+                        const dateStr = parts[1];
                         
                         let formattedDate = dateStr;
                         if (dateStr.includes('/')) {
@@ -122,6 +139,23 @@
                 const workbook = XLSX.read(excelParams, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                // Identify contest columns from row index 8
+                contestMeta = [];
+                if (rawData.length > 8) {
+                    const headerRow = rawData[8];
+                    for (let i = 5; i < headerRow.length; i++) {
+                        const cell = headerRow[i];
+                        // Check if cell is a number (Contest ID)
+                        if (cell && !isNaN(cell)) {
+                            contestMeta.push({
+                                id: cell,
+                                rankIndex: i,
+                                scoreIndex: i + 1
+                            });
+                        }
+                    }
+                }
 
                 let dataStartIndex = -1;
                 for (let i = 0; i < rawData.length; i++) {
@@ -160,6 +194,15 @@
                     const cruelId = idMap.get(username) || ''; 
                     const cruelDate = dateMap.get(username) || '';
 
+                    // Capture contest results
+                    const contests = {};
+                    contestMeta.forEach(meta => {
+                        contests[meta.id] = {
+                            rank: row[meta.rankIndex],
+                            score: row[meta.scoreIndex]
+                        };
+                    });
+
                     processedData.push({
                         rank: rank,
                         cruelId: cruelId,
@@ -167,15 +210,18 @@
                         username: username,
                         days: days,
                         rating: rating,
-                        score: score
+                        score: score,
+                        contests: contests
                     });
                 }
 
                 tableData = processedData;
+                renderTableHeaders();
                 renderTable(tableData);
 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('scoreTable').style.display = 'table';
+                document.getElementById('loadMoreBtn').style.display = 'inline-block';
 
             } catch (error) {
                 console.error("Error fetching or processing data:", error);
@@ -183,13 +229,67 @@
             }
         }
 
+        function renderTableHeaders() {
+            const thead = document.getElementById('tableHead');
+            thead.innerHTML = '';
+            
+            const tr1 = document.createElement('tr');
+            const tr2 = document.createElement('tr');
+
+            const staticHeaders = [
+                { text: 'Rank', key: 'rank' },
+                { text: 'CruelID', key: 'cruelId' },
+                { text: 'CruelDate', key: 'cruelDate' },
+                { text: 'Username', key: 'username' },
+                { text: 'Days', key: 'days' },
+                { text: 'Rating', key: 'rating' },
+                { text: 'Score', key: 'score' }
+            ];
+
+            staticHeaders.forEach(h => {
+                const th = document.createElement('th');
+                th.innerText = h.text;
+                th.rowSpan = 2;
+                th.onclick = () => sortTable(h.key);
+                tr1.appendChild(th);
+            });
+
+            // Dynamic Contest Headers
+            const weeksToShow = contestMeta.slice(0, visibleWeeks);
+            weeksToShow.forEach(meta => {
+                // Top Row: Contest Name
+                const thTop = document.createElement('th');
+                thTop.innerText = meta.id; 
+                thTop.colSpan = 2;
+                thTop.style.textAlign = 'center';
+                tr1.appendChild(thTop);
+
+                // Bottom Row: Rank and Score
+                const thRank = document.createElement('th');
+                thRank.innerText = 'Rank';
+                thRank.onclick = () => sortTable('contest_' + meta.id + '_rank');
+                tr2.appendChild(thRank);
+
+                const thScore = document.createElement('th');
+                thScore.innerText = 'Score';
+                thScore.onclick = () => sortTable('contest_' + meta.id + '_score');
+                tr2.appendChild(thScore);
+            });
+
+            thead.appendChild(tr1);
+            thead.appendChild(tr2);
+        }
+
         function renderTable(data) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
+            
+            const weeksToShow = contestMeta.slice(0, visibleWeeks);
 
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
+                
+                let html = `
                     <td>${row.rank || ''}</td>
                     <td class="clear-font">${row.cruelId || ''}</td>
                     <td class="clear-font">${row.cruelDate || ''}</td>
@@ -198,15 +298,27 @@
                     <td>${row.rating || ''}</td>
                     <td>${row.score || ''}</td>
                 `;
+
+                weeksToShow.forEach(meta => {
+                    const cData = row.contests[meta.id] || {};
+                    html += `<td>${cData.rank !== undefined ? cData.rank : ''}</td>`;
+                    html += `<td>${cData.score !== undefined ? cData.score : ''}</td>`;
+                });
+
+                tr.innerHTML = html;
                 tbody.appendChild(tr);
             });
         }
 
+        function loadMoreWeeks() {
+            visibleWeeks += 3;
+            renderTableHeaders();
+            renderTable(tableData);
+        }
+
         let sortDirection = {};
 
-        function sortTable(columnIndex) {
-            const keys = ['rank', 'cruelId', 'cruelDate', 'username', 'days', 'rating', 'score'];
-            const key = keys[columnIndex];
+        function sortTable(key) {
             
             if (!sortDirection[key]) sortDirection[key] = 'asc';
             else sortDirection[key] = sortDirection[key] === 'asc' ? 'desc' : 'asc';
@@ -214,24 +326,43 @@
             const dir = sortDirection[key];
 
             tableData.sort((a, b) => {
-                let valA = a[key];
-                let valB = b[key];
+                let valA, valB;
 
-                const numA = parseFloat(valA);
-                const numB = parseFloat(valB);
-                
-                const isNumeric = !isNaN(numA) && !isNaN(numB) && !['cruelDate', 'username'].includes(key);
-                
-                if (isNumeric) {
-                    valA = numA;
-                    valB = numB;
+                if (key.startsWith('contest_')) {
+                    const parts = key.split('_');
+                    const contestId = parts[1];
+                    const type = parts[2]; // 'rank' or 'score'
+                    valA = a.contests[contestId] ? a.contests[contestId][type] : null;
+                    valB = b.contests[contestId] ? b.contests[contestId][type] : null;
                 } else {
-                    valA = valA ? String(valA).toLowerCase() : '';
-                    valB = valB ? String(valB).toLowerCase() : '';
+                    valA = a[key];
+                    valB = b[key];
                 }
 
-                if (valA < valB) return dir === 'asc' ? -1 : 1;
-                if (valA > valB) return dir === 'asc' ? 1 : -1;
+                // Handle empty values (push to bottom usually, or top)
+                // Let's treat null/empty as -Infinity or Infinity depending on what we want.
+                // Or just standard comparison.
+                
+                // Helper to get number
+                const getNum = (v) => {
+                    if (v === undefined || v === null || v === '') return -999999; // Treat empty as very small
+                    const n = parseFloat(v);
+                    return isNaN(n) ? v : n;
+                };
+
+                let nA = getNum(valA);
+                let nB = getNum(valB);
+
+                const isNumeric = typeof nA === 'number' && typeof nB === 'number';
+
+                if (!isNumeric) {
+                     // String comparison
+                    nA = String(valA || '').toLowerCase();
+                    nB = String(valB || '').toLowerCase();
+                }
+
+                if (nA < nB) return dir === 'asc' ? -1 : 1;
+                if (nA > nB) return dir === 'asc' ? 1 : -1;
                 return 0;
             });
 
