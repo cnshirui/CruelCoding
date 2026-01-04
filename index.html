@@ -197,7 +197,8 @@
                 const footerKeywords = [
                     "-1:", "-2:", "BG Color:", "Full list", "Recommended resources", 
                     "See where we are", "Cruel System Design", "If you are interested", 
-                    "Make sure you agree", "[Blacklisted", "Graduated members"
+                    "Make sure you agree", "[Blacklisted", "Graduated members",
+                    "ranking-figure", "curve-figure"
                 ];
                 
                 for (let r = dataStartIndex; r < rawRows.length; r++) {
@@ -212,7 +213,7 @@
                     
                     if (!username || !rank) continue;
 
-                    if (footerKeywords.some(key => username.includes(key))) {
+                    if (footerKeywords.some(key => username.includes(key) || String(rank).includes(key))) {
                         break;
                     }
 
