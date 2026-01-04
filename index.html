@@ -28,6 +28,7 @@
             border: 1px solid #ddd;
             padding: 4px 8px;
             text-align: center; /* Center align for better look with subheaders */
+            white-space: nowrap;
         }
         /* Using a clear font for distinguishing l and I */
         .clear-font {
@@ -84,13 +85,15 @@
         <button id="loadMoreBtn" onclick="loadMoreWeeks()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; display: none;">Load More Weeks</button>
     </div>
 
-    <table id="scoreTable" style="display:none;">
-        <thead id="tableHead">
-            <!-- Headers will be generated dynamically -->
-        </thead>
-        <tbody id="tableBody">
-        </tbody>
-    </table>
+    <div style="overflow-x: auto;">
+        <table id="scoreTable" style="display:none; width: auto; min-width: 100%;">
+            <thead id="tableHead">
+                <!-- Headers will be generated dynamically -->
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+    </div>
 
     <script>
         const URLs = {
