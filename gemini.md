@@ -58,6 +58,27 @@
 -   **CSS:** Added `white-space: nowrap` to `th, td` and wrapped the table in a `div` with `overflow-x: auto`.
 -   **Sorting UI:** Added CSS for `.sort-asc` and `.sort-desc` classes and updated the JavaScript `sortTable` and `renderTableHeaders` functions to apply these classes dynamically.
 
+### 5. Tab System & Daily Check-in Feature
+**Requirements:**
+-   **Tabs:** Create two tabs: "残酷排行榜" (Scoreboard) and "每日打卡" (Daily Check-in).
+-   **Daily Data:** Fetch daily question data from a Google Sheet and merge with LeetCode question details (Title, Link, Tags, Difficulty).
+-   **Layout:** Minimized UI with left-aligned controls and compact table columns.
+
+**Implementation Details:**
+-   **Tabs:** Implemented a tab switching mechanism.
+-   **Data Fetching:**
+    -   Fetched Google Sheet CSV via `corsproxy.io`.
+    -   Fetched LeetCode question metadata from a raw GitHub JSON file (`leetcode_questions.json`) to bypass CORS.
+    -   Merged data to populate columns: Date, ID, Question, Tags, Level, Difficulty, YouTube.
+-   **Data Processing:**
+    -   Converted Excel serial dates (e.g., 46037) to `YYYY-MM-DD`.
+    -   Prioritized Tags from the spreadsheet columns.
+    -   Truncated Question titles to 50 characters.
+-   **UI/CSS:**
+    -   Set column widths to `0.1%` with `white-space: nowrap` for maximum compactness.
+    -   Made the Daily table sortable with proper numeric and date sorting.
+    -   Refined spacing and alignment for buttons and tabs.
+
 ## Final Output
 A single, self-contained `index.html` file that:
 -   Loads dependencies (SheetJS) via CDN.
@@ -65,3 +86,4 @@ A single, self-contained `index.html` file that:
 -   Processes and merges data in the browser.
 -   Displays a clean, sortable leaderboard named "残酷刷题群" with standardized date formats.
 -   Supports horizontal scrolling and clear sort indicators.
+-   Includes a "Daily Check-in" tab with data fetched from Google Sheets and LeetCode, featuring robust sorting and date formatting.

@@ -60,9 +60,10 @@
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 4px 8px;
+            padding: 2px 4px;
             text-align: center; /* Center align for better look with subheaders */
             white-space: nowrap;
+            width: 0.1%;
         }
         /* Using a clear font for distinguishing l and I */
         .clear-font {
@@ -134,7 +135,7 @@
         </div>
 
         <div style="overflow-x: auto;">
-            <table id="scoreTable" style="display:none; width: auto; min-width: 100%;">
+            <table id="scoreTable" style="display:none; width: auto;">
                 <thead id="tableHead">
                     <!-- Headers will be generated dynamically -->
                 </thead>
@@ -147,16 +148,16 @@
     <!-- Tab 2: Daily Check-in -->
     <div id="daily" class="tab-content">
         <div style="overflow-x: auto;">
-            <table id="dailyTable" style="width: auto; min-width: 100%;">
+            <table id="dailyTable" style="width: auto;">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>ID</th>
-                        <th>Question</th>
-                        <th>Tags</th>
-                        <th>Level</th>
-                        <th>Difficulty</th>
-                        <th>YouTube</th>
+                        <th onclick="sortDailyTable('sortDate')" data-key="sortDate">Date</th>
+                        <th onclick="sortDailyTable('id')" data-key="id">ID</th>
+                        <th onclick="sortDailyTable('title')" data-key="title">Question</th>
+                        <th onclick="sortDailyTable('tags')" data-key="tags">Tags</th>
+                        <th onclick="sortDailyTable('level')" data-key="level">Level</th>
+                        <th onclick="sortDailyTable('difficulty')" data-key="difficulty">Difficulty</th>
+                        <th onclick="sortDailyTable('ytHtml')" data-key="ytHtml">YouTube</th>
                     </tr>
                 </thead>
                 <tbody id="dailyTableBody">
@@ -207,6 +208,10 @@
         let dailyDataLoaded = false;
         let leetcodeMap = null;
 
+        // Daily Tab Globals
+        let dailyTableData = [];
+        let dailySort = { key: 'sortDate', dir: 'desc' };
+
         function openTab(tabName) {
             const tabs = document.getElementsByClassName("tab-content");
             for (let i = 0; i < tabs.length; i++) {
@@ -256,13 +261,6 @@
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                // rawData is array of arrays.
-                // Header is likely row 6 (index 6) based on previous inspection, or we just look for "Date" in col 2.
-                // Inspection showed: No., Title, Date, Tag 1, Tag 2, Level, difficulty, YouTube...
-                
-                // Let's scan for the header row or just assume standard data flow.
-                // We know data rows have a date in Col 2.
-                
                 const processedRows = [];
                 
                 rawData.forEach((row, index) => {
@@ -338,42 +336,35 @@
                     } 
 
                     const youtube = row[7];
+                    
+                    // Truncate title
+                    let displayTitle = title;
+                    if (displayTitle && displayTitle.length > 50) {
+                        displayTitle = displayTitle.substring(0, 50) + '...';
+                    }
+
                     const link = titleSlug ? `https://leetcode.com/problems/${titleSlug}` : '#';
-                    const titleHtml = titleSlug ? `<a href="${link}" target="_blank">${title}</a>` : title;
+                    const titleHtml = titleSlug ? `<a href="${link}" target="_blank">${displayTitle}</a>` : displayTitle;
+
+                    // Youtube Link
                     const ytHtml = youtube && youtube !== '-' ? `<a href="${youtube}" target="_blank">Watch</a>` : '';
 
                     processedRows.push({
                         date: formattedDate,
                         sortDate: sortDate,
-                        id: id,
+                        id: parseInt(id), // store as number for sorting
+                        title: title || '', // raw title for sorting
                         titleHtml: titleHtml,
                         tags: tags.join(', '),
                         level: level,
-                        difficulty: difficulty,
+                        difficulty: difficulty ? parseFloat(difficulty) : 0, // numeric for sort
                         ytHtml: ytHtml
                     });
                 });
 
-                // Sort by Date Descending
-                processedRows.sort((a, b) => b.sortDate - a.sortDate);
-
-                // Render
-                tbody.innerHTML = '';
-                
-                processedRows.forEach(row => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${row.date}</td>
-                        <td>${row.id}</td>
-                        <td class="clear-font" style="text-align: left;">${row.titleHtml}</td>
-                        <td style="text-align: left;">${row.tags}</td>
-                        <td>${row.level}</td>
-                        <td>${row.difficulty}</td>
-                        <td>${row.ytHtml}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                
+                dailyTableData = processedRows;
+                // Initial Sort
+                sortDailyTable('sortDate', true); // true = force default or just apply sort
                 dailyDataLoaded = true;
 
             } catch (error) {
@@ -381,6 +372,70 @@
                 tbody.innerHTML = `<tr><td colspan="7" style="color: red;">Error loading data: ${error.message}</td></tr>`;
             }
         }
+
+        function sortDailyTable(key, initial = false) {
+            if (!initial) {
+                if (dailySort.key === key) {
+                    dailySort.dir = dailySort.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    dailySort.key = key;
+                    dailySort.dir = 'asc'; // Default asc for new column, except maybe date?
+                    if (key === 'sortDate') dailySort.dir = 'desc'; // Date default desc
+                }
+            }
+
+            const dir = dailySort.dir;
+            
+            dailyTableData.sort((a, b) => {
+                let valA = a[key];
+                let valB = b[key];
+                
+                if (valA === undefined || valA === null) valA = '';
+                if (valB === undefined || valB === null) valB = '';
+
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+
+                if (valA < valB) return dir === 'asc' ? -1 : 1;
+                if (valA > valB) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            renderDailyTable();
+            updateDailyHeaders();
+        }
+
+        function renderDailyTable() {
+            const tbody = document.getElementById('dailyTableBody');
+            tbody.innerHTML = '';
+            
+            dailyTableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.date}</td>
+                    <td>${row.id}</td>
+                    <td class="clear-font" style="text-align: left;">${row.titleHtml}</td>
+                    <td style="text-align: left;">${row.tags}</td>
+                    <td>${row.level}</td>
+                    <td>${row.difficulty || ''}</td>
+                    <td>${row.ytHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateDailyHeaders() {
+            const headers = document.querySelectorAll('#dailyTable th');
+            headers.forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                const key = th.getAttribute('data-key');
+                if (key === dailySort.key) {
+                    th.classList.add(dailySort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
+        }
+
+
 
         async function fetchData() {
             try {
