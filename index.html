@@ -26,13 +26,16 @@
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 4px 8px;
             text-align: center; /* Center align for better look with subheaders */
         }
         /* Using a clear font for distinguishing l and I */
         .clear-font {
             font-family: "JetBrains Mono", "Cascadia Code", "Source Code Pro", Menlo, Monaco, Consolas, "Courier New", monospace;
             text-align: left; /* Keep left align for text fields */
+        }
+        .georgia-font {
+            font-family: Georgia, serif;
         }
         td:nth-child(1) {
              text-align: center; /* Rank center */
@@ -294,6 +297,9 @@
                 const th = document.createElement('th');
                 th.innerText = h.text;
                 th.rowSpan = 2;
+                if (h.key === 'cruelId') {
+                    th.classList.add('georgia-font');
+                }
                 th.onclick = () => sortTable(h.key);
                 tr1.appendChild(th);
             });
