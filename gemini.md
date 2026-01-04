@@ -47,9 +47,21 @@
 -   Updated HTML tags (`<title>`, `<h1>`) and removed search-related code.
 -   Added date parsing logic in the JavaScript `fetchData` function to reformat strings using split/join and padding.
 
+### 4. Further Data Cleaning & Layout Enhancements
+**Requirements:**
+-   **Remove Artifacts:** Filter out rows containing "ranking-figure" and "curve-figure" which appeared at the bottom of the table.
+-   **Layout Stability:** Prevent text wrapping in cells and ensure the table supports horizontal scrolling as more weeks (columns) are added.
+-   **Sort Indicators:** Show visual indicators (▲/▼) in table headers to denote the active sort column and direction.
+
+**Implementation Details:**
+-   **Filtering:** Updated `footerKeywords` to include "ranking-figure" and "curve-figure", checking both rank and username columns.
+-   **CSS:** Added `white-space: nowrap` to `th, td` and wrapped the table in a `div` with `overflow-x: auto`.
+-   **Sorting UI:** Added CSS for `.sort-asc` and `.sort-desc` classes and updated the JavaScript `sortTable` and `renderTableHeaders` functions to apply these classes dynamically.
+
 ## Final Output
 A single, self-contained `index.html` file that:
 -   Loads dependencies (SheetJS) via CDN.
 -   Fetches raw data files from GitHub.
 -   Processes and merges data in the browser.
 -   Displays a clean, sortable leaderboard named "残酷刷题群" with standardized date formats.
+-   Supports horizontal scrolling and clear sort indicators.
