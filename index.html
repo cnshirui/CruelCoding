@@ -140,20 +140,30 @@
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-                // Identify contest columns from row index 8
+                // Dynamically find the "Contest" row
+                let contestRowIndex = -1;
+                for (let i = 0; i < rawData.length; i++) {
+                    if (rawData[i] && rawData[i][1] === 'Contest') {
+                        contestRowIndex = i;
+                        break;
+                    }
+                }
+
+                if (contestRowIndex === -1) {
+                    throw new Error("Could not find 'Contest' header row in Excel.");
+                }
+
                 contestMeta = [];
-                if (rawData.length > 8) {
-                    const headerRow = rawData[8];
-                    for (let i = 5; i < headerRow.length; i++) {
-                        const cell = headerRow[i];
-                        // Check if cell is a number (Contest ID)
-                        if (cell && !isNaN(cell)) {
-                            contestMeta.push({
-                                id: cell,
-                                rankIndex: i,
-                                scoreIndex: i + 1
-                            });
-                        }
+                const headerRow = rawData[contestRowIndex];
+                for (let i = 5; i < headerRow.length; i++) {
+                    const cell = headerRow[i];
+                    // Check if cell is a number (Contest ID)
+                    if (cell && !isNaN(cell)) {
+                        contestMeta.push({
+                            id: cell,
+                            rankIndex: i,
+                            scoreIndex: i + 1
+                        });
                     }
                 }
 
