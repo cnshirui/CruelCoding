@@ -115,6 +115,7 @@
             background-color: #f1f1f1;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 </head>
 <body>
@@ -195,8 +196,8 @@
             excel: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/index.xlsx',
             cruelId: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/getRank/id.in',
             cruelDate: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/Data/Members/In.txt',
-            dailyCsv: 'https://api.allorigins.win/raw?url=https://docs.google.com/spreadsheets/d/1kBGyRsSdbGDu7DzjQcC-UkZjZERdrP8-_QyVGXHSrB8/export?format=csv&gid=0',
-            leetcodeJson: 'leetcode_questions.json'
+            dailyCsv: 'https://corsproxy.io/?' + encodeURIComponent('https://docs.google.com/spreadsheets/d/1kBGyRsSdbGDu7DzjQcC-UkZjZERdrP8-_QyVGXHSrB8/export?format=csv&gid=0'),
+            leetcodeJson: 'https://raw.githubusercontent.com/cnshirui/CruelCoding/refs/heads/main/leetcode_questions.json'
         };
 
         let tableData = [];
@@ -265,38 +266,73 @@
                 const processedRows = [];
                 
                 rawData.forEach((row, index) => {
-                    // Row is array. Col C is index 2.
+                    // Row is array. Date is Col C (index 2), ID is Col A (index 0)
                     if (!row || row.length < 3) return;
                     
-                    const dateVal = row[2];
+                    let idRaw = row[0];
+                    if (idRaw === undefined || idRaw === null || idRaw === '') return;
+                    
+                    let dateVal = row[2];
                     if (!dateVal) return;
 
-                    // Check if it looks like a date (simple check)
-                    // It might be "Date" (header) or a real date.
-                    if (String(dateVal).trim().toLowerCase() === 'date') return;
+                    // Clean ID (e.g., "527*" -> "527")
+                    let id = String(idRaw).replace('*', '').trim();
+                    if (isNaN(parseInt(id))) return; // Skip headers or non-numeric IDs
 
-                    const id = row[0];
+                    // Check if it's a valid date
+                    let formattedDate = String(dateVal).trim();
+                    if (formattedDate.toLowerCase() === 'date') return;
+
+                    let sortDate = 0;
+                    if (formattedDate.includes('/')) {
+                        const parts = formattedDate.split('/');
+                        if (parts.length === 3) {
+                            let [m, d, y] = parts;
+                            y = y.length === 2 ? '20' + y : y;
+                            formattedDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                            sortDate = new Date(formattedDate).getTime();
+                        }
+                    } else if (!isNaN(formattedDate) && formattedDate.length >= 5) {
+                        // Handle Excel serial date (e.g., 46037)
+                        const serial = parseFloat(formattedDate);
+                        const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+                        if (!isNaN(d.getTime())) {
+                            sortDate = d.getTime();
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            formattedDate = `${year}-${month}-${day}`;
+                        }
+                    } else {
+                        // Try native parser
+                        const d = new Date(formattedDate);
+                        if (!isNaN(d.getTime())) {
+                            sortDate = d.getTime();
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            formattedDate = `${year}-${month}-${day}`;
+                        }
+                    }
+                    
+                    if (isNaN(sortDate) || sortDate === 0) return;
+
                     const qInfo = leetcodeMap.get(String(id));
                     
                     let title = row[1];
                     let titleSlug = '';
                     let tags = [];
-                    let level = row[5] || ''; // Level
-                    let difficulty = row[6] || ''; // numeric difficulty / rating
+                    let level = row[5] || '';
+                    let difficulty = row[6] || '';
                     
                     if (qInfo) {
                         title = qInfo.title;
                         titleSlug = qInfo.titleSlug;
-                        // Use LeetCode difficulty if Level is missing or to standardize?
-                        // Spreadsheet Level: "Medium"
-                        // LeetCode difficulty: "MEDIUM"
                         if (!level) level = qInfo.difficulty;
-                        
                         if (qInfo.topicTags) {
                             tags = qInfo.topicTags.map(t => t.name);
                         }
                     } else {
-                        // Fallback tags from spreadsheet
                         const t1 = row[3];
                         const t2 = row[4];
                         if (t1) tags.push(t1);
@@ -304,16 +340,13 @@
                     }
 
                     const youtube = row[7];
-                    
-                    // Link
                     const link = titleSlug ? `https://leetcode.com/problems/${titleSlug}` : '#';
                     const titleHtml = titleSlug ? `<a href="${link}" target="_blank">${title}</a>` : title;
-
-                    // Youtube Link
                     const ytHtml = youtube && youtube !== '-' ? `<a href="${youtube}" target="_blank">Watch</a>` : '';
 
                     processedRows.push({
-                        date: dateVal,
+                        date: formattedDate,
+                        sortDate: sortDate,
                         id: id,
                         titleHtml: titleHtml,
                         tags: tags.join(', '),
@@ -323,11 +356,11 @@
                     });
                 });
 
+                // Sort by Date Descending
+                processedRows.sort((a, b) => b.sortDate - a.sortDate);
+
                 // Render
                 tbody.innerHTML = '';
-                // Sort by Date Descending? The user didn't specify, but usually daily check-ins are chronological.
-                // The CSV seems to be reverse chronological (newest first)?
-                // Let's keep CSV order for now.
                 
                 processedRows.forEach(row => {
                     const tr = document.createElement('tr');
