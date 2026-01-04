@@ -156,7 +156,7 @@
                         <th>Tags</th>
                         <th>Level</th>
                         <th>Difficulty</th>
-                        <th>YouTube Link</th>
+                        <th>YouTube</th>
                     </tr>
                 </thead>
                 <tbody id="dailyTableBody">
@@ -325,19 +325,17 @@
                     let level = row[5] || '';
                     let difficulty = row[6] || '';
                     
+                    // Always read tags from spreadsheet
+                    const t1 = row[3];
+                    const t2 = row[4];
+                    if (t1) tags.push(t1);
+                    if (t2) tags.push(t2);
+
                     if (qInfo) {
                         title = qInfo.title;
                         titleSlug = qInfo.titleSlug;
                         if (!level) level = qInfo.difficulty;
-                        if (qInfo.topicTags) {
-                            tags = qInfo.topicTags.map(t => t.name);
-                        }
-                    } else {
-                        const t1 = row[3];
-                        const t2 = row[4];
-                        if (t1) tags.push(t1);
-                        if (t2) tags.push(t2);
-                    }
+                    } 
 
                     const youtube = row[7];
                     const link = titleSlug ? `https://leetcode.com/problems/${titleSlug}` : '#';
@@ -368,7 +366,7 @@
                         <td>${row.date}</td>
                         <td>${row.id}</td>
                         <td class="clear-font" style="text-align: left;">${row.titleHtml}</td>
-                        <td style="text-align: left; white-space: normal;">${row.tags}</td>
+                        <td style="text-align: left;">${row.tags}</td>
                         <td>${row.level}</td>
                         <td>${row.difficulty}</td>
                         <td>${row.ytHtml}</td>
