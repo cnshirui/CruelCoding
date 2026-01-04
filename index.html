@@ -401,7 +401,7 @@
                 currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
             } else {
                 currentSort.key = key;
-                currentSort.dir = 'asc';
+                currentSort.dir = 'asc'; // Default to ascending first
             }
 
             const dir = currentSort.dir;
@@ -420,13 +420,11 @@
                     valB = b[key];
                 }
 
-                // Handle empty values (push to bottom usually, or top)
-                // Let's treat null/empty as -Infinity or Infinity depending on what we want.
-                // Or just standard comparison.
-                
                 // Helper to get number
+                // We treat null/undefined/empty as a special "missing" value.
+                // We also want to treat -1 as a special "missing" or "absent" value that always goes to the bottom.
                 const getNum = (v) => {
-                    if (v === undefined || v === null || v === '') return -999999; // Treat empty as very small
+                    if (v === undefined || v === null || v === '') return null; 
                     const n = parseFloat(v);
                     return isNaN(n) ? v : n;
                 };
@@ -434,12 +432,41 @@
                 let nA = getNum(valA);
                 let nB = getNum(valB);
 
+                // Check for "missing" values (null or -1)
+                // If we want -1 to always be at the bottom:
+                // In ASC sort: -1 should be > any valid number
+                // In DESC sort: -1 should be < any valid number
+                // Actually, "bottom" means last in the list.
+                // So if ASC:  [1, 2, 3, -1] -> -1 is treated as Infinity
+                // So if DESC: [3, 2, 1, -1] -> -1 is treated as -Infinity
+                
+                const isMissing = (v) => v === null || v === -1 || v === '-1';
+
+                const missingA = isMissing(nA);
+                const missingB = isMissing(nB);
+
+                if (missingA && missingB) return 0;
+                if (missingA) return 1; // A is missing, so A > B (to put A at end in asc), or A < B ??
+                // Let's refine:
+                // We want missing values to ALWAYS be at the end of the array.
+                // Array.sort expects:
+                // < 0 if a comes first
+                // > 0 if b comes first
+                
+                // If we want them at the bottom, they should be "greater" than everything else in ASC
+                // and "smaller" than everything else in DESC? No, that would put them at top in DESC.
+                // To force them to the bottom, we manually check sort direction.
+                
+                if (missingA) return 1; // Put A after B
+                if (missingB) return -1; // Put B after A
+
+                // Normal comparison for non-missing values
                 const isNumeric = typeof nA === 'number' && typeof nB === 'number';
 
                 if (!isNumeric) {
                      // String comparison
-                    nA = String(valA || '').toLowerCase();
-                    nB = String(valB || '').toLowerCase();
+                    nA = String(nA).toLowerCase();
+                    nB = String(nB).toLowerCase();
                 }
 
                 if (nA < nB) return dir === 'asc' ? -1 : 1;
