@@ -127,6 +127,7 @@
     <div class="tab-container">
         <button class="tab-button active" onclick="openTab('scoreboard')">残酷排行榜</button>
         <button class="tab-button" onclick="openTab('daily')">每日打卡</button>
+        <button class="tab-button" onclick="openTab('rules')">群规</button>
     </div>
 
     <!-- Tab 1: Scoreboard -->
@@ -169,39 +170,19 @@
         </div>
     </div>
 
-    <script>
-        function openTab(tabName) {
-            const tabs = document.getElementsByClassName("tab-content");
-            for (let i = 0; i < tabs.length; i++) {
-                tabs[i].classList.remove("active");
-            }
-            const buttons = document.getElementsByClassName("tab-button");
-            for (let i = 0; i < buttons.length; i++) {
-                buttons[i].classList.remove("active");
-            }
-            
-            document.getElementById(tabName).classList.add("active");
-            // Find the button that calls this function with this tabName? 
-            // Simplified: we can just check innerText or use event.currentTarget if we passed event.
-            // Let's just loop and match based on index or onclick attr.
-            // Easiest is to pass 'event' to openTab(event, 'tabName') but we only changed HTML structure.
-            // Let's fix button active state simply by matching text or order.
-            // Or better, let's just make the buttons queryable.
-            
-            // Hardcoded for these two buttons for now
-            if (tabName === 'scoreboard') {
-                buttons[0].classList.add("active");
-            } else {
-                buttons[1].classList.add("active");
-            }
-        }
+    <!-- Tab 3: Rules -->
+    <div id="rules" class="tab-content">
+        <div id="rulesContent" style="padding: 10px;">Loading rules...</div>
+    </div>
 
+    <script>
         const URLs = {
             excel: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/index.xlsx',
             cruelId: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/getRank/id.in',
             cruelDate: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/generateEXCEL/Data/Members/In.txt',
             dailyCsv: 'https://corsproxy.io/?' + encodeURIComponent('https://docs.google.com/spreadsheets/d/1kBGyRsSdbGDu7DzjQcC-UkZjZERdrP8-_QyVGXHSrB8/export?format=csv&gid=0'),
-            leetcodeJson: 'https://raw.githubusercontent.com/cnshirui/CruelCoding/refs/heads/main/leetcode_questions.json'
+            leetcodeJson: 'https://raw.githubusercontent.com/cnshirui/CruelCoding/refs/heads/main/leetcode_questions.json',
+            rules: 'https://raw.githubusercontent.com/wisdompeak/lc-score-board/refs/heads/gh-pages/rules.html'
         };
 
         let tableData = [];
@@ -209,6 +190,7 @@
         let visibleWeeks = 3;
         let currentSort = { key: null, dir: null };
         let dailyDataLoaded = false;
+        let rulesLoaded = false;
         let leetcodeMap = null;
 
         // Daily Tab Globals
@@ -229,11 +211,30 @@
             
             if (tabName === 'scoreboard') {
                 buttons[0].classList.add("active");
-            } else {
+            } else if (tabName === 'daily') {
                 buttons[1].classList.add("active");
                 if (!dailyDataLoaded) {
                     fetchDailyData();
                 }
+            } else if (tabName === 'rules') {
+                buttons[2].classList.add("active");
+                if (!rulesLoaded) {
+                    fetchRules();
+                }
+            }
+        }
+
+        async function fetchRules() {
+            const container = document.getElementById('rulesContent');
+            try {
+                const res = await fetch(URLs.rules);
+                if (!res.ok) throw new Error("Failed to fetch rules");
+                const html = await res.text();
+                container.innerHTML = html;
+                rulesLoaded = true;
+            } catch (error) {
+                console.error("Error loading rules:", error);
+                container.innerHTML = `<div style="color: red;">Error loading rules: ${error.message}</div>`;
             }
         }
 
