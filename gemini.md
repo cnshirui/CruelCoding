@@ -76,10 +76,11 @@
     -   Truncated Question titles to 50 characters.
 -   **UI/CSS:**
     -   Set column widths to `0.1%` with `white-space: nowrap` for maximum compactness.
-    -   Made the Daily table sortable with proper numeric and date sorting.
-    -   Refined spacing and alignment for buttons and tabs.
-
-## Final Output
+        - Made the Daily table sortable with proper numeric and date sorting.
+        - Refined spacing and alignment for buttons and tabs.
+    -   **Favicon:** Added a local `favicon.ico` (sourced from `rank.cruelcoding.com`) to the project and referenced it in `index.html`.
+    
+    ## Final Output
 A single, self-contained `index.html` file that:
 -   Loads dependencies (SheetJS) via CDN.
 -   Fetches raw data files from GitHub.

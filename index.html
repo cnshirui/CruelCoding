@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>残酷刷题群</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -762,15 +763,10 @@
                 let nA = getNum(valA);
                 let nB = getNum(valB);
 
-                // Check for "missing" values (null or -1)
-                // If we want -1 to always be at the bottom:
-                // In ASC sort: -1 should be > any valid number
-                // In DESC sort: -1 should be < any valid number
-                // Actually, "bottom" means last in the list.
-                // So if ASC:  [1, 2, 3, -1] -> -1 is treated as Infinity
-                // So if DESC: [3, 2, 1, -1] -> -1 is treated as -Infinity
+                // Check for "missing" values (null or -1 or -2)
+                // If we want -1/-2 to always be at the bottom:
                 
-                const isMissing = (v) => v === null || v === -1 || v === '-1';
+                const isMissing = (v) => v === null || v === -1 || v === '-1' || v === -2 || v === '-2';
 
                 const missingA = isMissing(nA);
                 const missingB = isMissing(nB);
