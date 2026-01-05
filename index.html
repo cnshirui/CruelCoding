@@ -604,8 +604,8 @@
                 }
 
                 tableData = processedData;
-                renderTableHeaders();
-                renderTable(tableData);
+                currentSort = { key: 'rank', dir: 'asc' }; // Set default sort
+                sortTable('rank', true); // Sort by rank initially
 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('scoreTable').style.display = 'table';
@@ -728,12 +728,14 @@
             renderTable(tableData);
         }
 
-        function sortTable(key) {
-            if (currentSort.key === key) {
-                currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSort.key = key;
-                currentSort.dir = 'asc'; // Default to ascending first
+        function sortTable(key, initial = false) {
+            if (!initial) {
+                if (currentSort.key === key) {
+                    currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.key = key;
+                    currentSort.dir = 'asc'; // Default to ascending first
+                }
             }
 
             const dir = currentSort.dir;
