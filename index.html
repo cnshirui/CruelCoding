@@ -592,6 +592,7 @@
                         cruelId: cruelId,
                         cruelDate: cruelDate,
                         username: username,
+                        usernameHtml: `<a href="https://leetcode.com/u/${username}" target="_blank">${username}</a>`,
                         days: days,
                         rating: rating,
                         score: score,
@@ -695,7 +696,7 @@
                     <td>${row.rank || ''}</td>
                     <td class="clear-font">${row.cruelId || ''}</td>
                     <td class="clear-font">${row.cruelDate || ''}</td>
-                    <td class="clear-font">${row.username || ''}</td>
+                    <td class="clear-font">${row.usernameHtml || ''}</td>
                     <td>${row.days ? row.days : ''}</td>
                     <td>${row.rating ? row.rating : ''}</td>
                     <td>${row.score ? (typeof row.score === 'number' ? row.score.toFixed(1) : row.score) : ''}</td>
