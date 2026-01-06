@@ -229,7 +229,11 @@
             try {
                 const res = await fetch(URLs.rules);
                 if (!res.ok) throw new Error("Failed to fetch rules");
-                const html = await res.text();
+                let html = await res.text();
+                
+                // Highlight "红包"
+                html = html.replace(/红包/g, '<span style="color: red; font-weight: bold;">红包</span>');
+                
                 container.innerHTML = html;
                 rulesLoaded = true;
             } catch (error) {
