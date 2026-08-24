@@ -266,6 +266,8 @@ small { display:block; margin-top:3px; color:var(--muted-text); }
 .auth-copy>p:last-child { max-width:470px; color:#bec3bf; font-size:17px; line-height:1.6; }
 .auth-form-wrap { display:grid; place-items:center; padding:40px; }
 .auth-form { width:min(440px,100%); }
+.auth-back-link { display:inline-block; margin-bottom:28px; color:var(--muted-text); font-size:13px; font-weight:600; text-decoration:none; }
+.auth-back-link:hover { color:var(--ink); text-decoration:underline; text-underline-offset:4px; }
 .auth-form h2 { margin-bottom:34px; }
 .google-button { display:flex; align-items:center; justify-content:center; gap:11px; width:100%; min-height:50px; padding:0 18px; border:1px solid var(--line); border-radius:9px; color:var(--ink); background:var(--card); font:inherit; font-weight:700; cursor:pointer; }
 .google-button:hover { background:#f7f5ef; }

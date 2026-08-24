@@ -37,6 +37,7 @@ export function AuthForm({ error, message, mode = "login", next }: { error?: str
       <section className="auth-form-wrap">
         <form className="auth-form" action={signingUp ? signup : login} ref={formRef}>
           <input name="next" type="hidden" value={next ?? ""} />
+          <Link className="auth-back-link" href="/">← Back to rankings</Link>
           <h2>{signingUp ? "Create account" : "Log in"}</h2>
           {error ? <p className="form-alert error" role="alert">{error}</p> : null}
           {message ? <p className="form-alert success" role="status">{message}</p> : null}

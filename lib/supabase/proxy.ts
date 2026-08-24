@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublicPage = pathname === "/ranks";
+  const isPublicPage = pathname === "/" || pathname === "/ranks";
   const isAuthEndpoint = pathname === "/login" || pathname.startsWith("/auth/");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
