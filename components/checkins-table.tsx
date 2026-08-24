@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Search } from "lucide-react";
 import type { DailyProblem } from "@/lib/daily-problems";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { CheckinsRefresh } from "@/components/checkins-refresh";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TablePagination } from "@/components/table-pagination";
 
 function localDateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -111,7 +112,7 @@ export function CheckinsTable({ problems }: { problems: DailyProblem[] }) {
 
       <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-xs text-muted-foreground">第 {table.getState().pagination.pageIndex + 1} / {Math.max(table.getPageCount(), 1)} 页</span>
-        <div className="flex items-center gap-2"><Select value={String(table.getState().pagination.pageSize)} onValueChange={(value) => table.setPageSize(Number(value))}><SelectTrigger size="sm" aria-label="每页显示数量"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="10">每页 10 条</SelectItem><SelectItem value="20">每页 20 条</SelectItem><SelectItem value="30">每页 30 条</SelectItem><SelectItem value="50">每页 50 条</SelectItem></SelectContent></Select><Button variant="outline" size="icon-sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="上一页"><ChevronLeft /></Button><Button variant="outline" size="icon-sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="下一页"><ChevronRight /></Button></div>
+        <div className="flex items-center gap-2"><Select value={String(table.getState().pagination.pageSize)} onValueChange={(value) => table.setPageSize(Number(value))}><SelectTrigger size="sm" aria-label="每页显示数量"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="10">每页 10 条</SelectItem><SelectItem value="20">每页 20 条</SelectItem><SelectItem value="30">每页 30 条</SelectItem><SelectItem value="50">每页 50 条</SelectItem></SelectContent></Select><TablePagination pageIndex={table.getState().pagination.pageIndex} pageCount={table.getPageCount()} onPageChange={table.setPageIndex} /></div>
       </div>
     </div>
   </div>;

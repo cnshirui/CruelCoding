@@ -60,6 +60,7 @@ h2 { margin:0; font-family:Georgia,serif; font-size:clamp(38px,5vw,58px); font-w
 .leaderboard-search > svg { position:absolute; z-index:1; top:50%; left:12px; width:16px; height:16px; color:var(--muted-text); transform:translateY(-50%); }
 .leaderboard-search input { height:40px; padding-left:38px; background:var(--card); }
 .leaderboard-toolbar-actions { display:flex; flex-shrink:0; align-items:center; gap:10px; }
+.table-page-buttons { display:flex; align-items:center; gap:6px; }
 .contest-table-heading { display:flex; min-width:0; align-items:center; justify-content:center; gap:5px; overflow:visible; text-align:center; white-space:nowrap; }
 .contest-table-heading strong { color:#58645f; font-size:10px; }
 .contest-table-heading time,.contest-table-heading small { flex-shrink:0; margin:0; color:#7a8580; font-family:var(--font-mono),monospace; font-size:9px; font-weight:500; text-transform:none; }

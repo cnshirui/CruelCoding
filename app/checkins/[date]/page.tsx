@@ -24,7 +24,7 @@ export default async function DailyProblemPage({ params }: { params: Promise<{ d
     statuses = (data ?? []) as ProblemCheckinStatus[];
   }
   const byMember = new Map(statuses.map((status) => [status.cruel_id.toLowerCase(), status]));
-  const rows = members.map((member) => ({ member, status: byMember.get(member.cruel_id.toLowerCase()) })).sort((a, b) => Number(Boolean(b.status?.solved)) - Number(Boolean(a.status?.solved)) || a.member.cruel_id.localeCompare(b.member.cruel_id));
+  const rows = members.filter((member) => member.status !== "inactive").map((member) => ({ member, status: byMember.get(member.cruel_id.toLowerCase()) })).sort((a, b) => Number(Boolean(b.status?.solved)) - Number(Boolean(a.status?.solved)) || a.member.cruel_id.localeCompare(b.member.cruel_id));
   const solved = rows.filter((row) => row.status?.solved).length;
   return <main>
     <header className="subpage-header"><nav><Link className="brand" href="/"><span className="brand-mark">C</span><span>Cruel Coding</span></Link><div className="nav-header-actions"><Link className="nav-link" href="/checkins">← 每日题目</Link><AuthNav /></div></nav></header>

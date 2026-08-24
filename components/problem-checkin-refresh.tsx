@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { type ColumnDef, type PaginationState, type SortingState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { type ColumnDef, type SortingState, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
+import { ArrowUpDown, RefreshCw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,6 @@ export function ProblemCheckinRefresh({ date, number, slug, initialRows }: { dat
   const [sorting, setSorting] = useState<SortingState>([{ id: "status", desc: false }, { id: "cruelId", desc: false }]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
 
   const filteredRows = useMemo(() => statusFilter === "all" ? rows : rows.filter((row) => getStatus(row, progress) === statusFilter), [progress, rows, statusFilter]);
   const columns = useMemo<ColumnDef<Row>[]>(() => [
@@ -68,7 +67,7 @@ export function ProblemCheckinRefresh({ date, number, slug, initialRows }: { dat
 
   // TanStack Table returns a stateful instance whose methods are intentionally not memoizable.
   // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({ data: filteredRows, columns, state: { sorting, globalFilter, pagination }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, onPaginationChange: setPagination, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), getPaginationRowModel: getPaginationRowModel(), globalFilterFn: (row, _id, value) => row.original.member.cruel_id.toLowerCase().includes(String(value).trim().toLowerCase()) });
+  const table = useReactTable({ data: filteredRows, columns, state: { sorting, globalFilter }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), globalFilterFn: (row, _id, value) => row.original.member.cruel_id.toLowerCase().includes(String(value).trim().toLowerCase()) });
 
   function applyEvent(event: StreamEvent) {
     if (event.type === "start") setProgress(Object.fromEntries(event.cruel_ids.map((id) => [id.toLowerCase(), "queued"])));
@@ -98,6 +97,6 @@ export function ProblemCheckinRefresh({ date, number, slug, initialRows }: { dat
     <div className="checkin-status-toolbar"><div className="checkin-status-search"><Search aria-hidden="true" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索 CruelID…" aria-label="搜索群友打卡状态" /></div><div><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger aria-label="按状态筛选"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">全部状态</SelectItem><SelectItem value="solved">已完成</SelectItem><SelectItem value="missing">未发现</SelectItem><SelectItem value="unchecked">尚未检查</SelectItem><SelectItem value="error">查询失败</SelectItem></SelectContent></Select><Button type="button" onClick={refresh} disabled={loading}><RefreshCw className={loading ? "animate-spin" : undefined} />{loading ? "正在检查…" : "刷新打卡状态"}</Button></div></div>
     {message ? <p className={hasError ? "checkin-refresh-message error" : "checkin-refresh-message"} role="status">{message}</p> : null}
     <div className="checkin-status-shell"><Table><TableHeader>{table.getHeaderGroups().map((group) => <TableRow key={group.id}>{group.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>)}</TableHeader><TableBody>{table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => <TableRow key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>) : <TableRow><TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">没有符合条件的群友。</TableCell></TableRow>}</TableBody></Table></div>
-    <div className="checkin-status-pagination"><span>{table.getFilteredRowModel().rows.length} 位群友 · 第 {pagination.pageIndex + 1} / {Math.max(table.getPageCount(), 1)} 页</span><div><Select value={String(pagination.pageSize)} onValueChange={(value) => table.setPageSize(Number(value))}><SelectTrigger size="sm" aria-label="每页显示数量"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="10">每页 10 位</SelectItem><SelectItem value="20">每页 20 位</SelectItem><SelectItem value="50">每页 50 位</SelectItem></SelectContent></Select><Button variant="outline" size="icon-sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="上一页"><ChevronLeft /></Button><Button variant="outline" size="icon-sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="下一页"><ChevronRight /></Button></div></div>
+    <div className="checkin-status-pagination"><span>{table.getFilteredRowModel().rows.length} 位在群群友</span></div>
   </div>;
 }

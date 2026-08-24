@@ -33,7 +33,8 @@ export function Leaderboard({ members, contestDates }: { members: LeaderboardMem
   const [sorting, setSorting] = useState<SortingState>([{ id: "score", desc: true }]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [visibleContestCount, setVisibleContestCount] = useState(3);
-  const allContests = useMemo(() => [...new Set(members.flatMap((member) => member.contests.map((contest) => contest.contest)))].toSorted((a, b) => b - a), [members]);
+  const activeMembers = useMemo(() => members.filter((member) => member.status !== "inactive"), [members]);
+  const allContests = useMemo(() => [...new Set(activeMembers.flatMap((member) => member.contests.map((contest) => contest.contest)))].toSorted((a, b) => b - a), [activeMembers]);
   const visibleContests = useMemo(() => allContests.slice(0, visibleContestCount), [allContests, visibleContestCount]);
   const tableWidth = 622 + visibleContests.length * 184;
   const columns = useMemo<ColumnDef<LeaderboardMember>[]>(() => [
@@ -55,7 +56,7 @@ export function Leaderboard({ members, contestDates }: { members: LeaderboardMem
 
   // TanStack Table returns a stateful instance whose methods are intentionally not memoizable.
   // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({ data: members, columns, state: { sorting, globalFilter }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), globalFilterFn: (row, _id, value) => [row.original.cruel_id, row.original.wechat_name, row.original.subgroup].some((field) => field?.toLowerCase().includes(String(value).trim().toLowerCase())) });
+  const table = useReactTable({ data: activeMembers, columns, state: { sorting, globalFilter }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), globalFilterFn: (row, _id, value) => [row.original.cruel_id, row.original.wechat_name, row.original.subgroup].some((field) => field?.toLowerCase().includes(String(value).trim().toLowerCase())) });
 
   return <div className="board leaderboard-board" style={{ width: `${tableWidth}px` }}>
     <div className="leaderboard-toolbar"><div className="leaderboard-search"><Search aria-hidden="true" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索 CruelID、姓名或分组…" aria-label="搜索排行榜" /></div><div className="leaderboard-toolbar-actions"><Badge variant="outline">{table.getFilteredRowModel().rows.length} 位群友</Badge>{visibleContestCount < allContests.length ? <Button variant="outline" size="sm" onClick={() => setVisibleContestCount((count) => Math.min(count + 3, allContests.length))}>显示更多周赛<ChevronRight aria-hidden="true" /></Button> : null}</div></div>
