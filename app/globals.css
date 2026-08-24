@@ -86,9 +86,9 @@ tbody tr:hover { background:#f7f4ed; }
 .podium { display:grid; place-items:center; width:25px; height:25px; border-radius:50%; font-weight:700; }
 .podium-1 { color:#725305; background:#f4d96a; }.podium-2 { color:#51565a; background:#dce0e2; }.podium-3 { color:#6d4225; background:#e8b993; }
 .contest { display:block; max-width:180px; overflow:hidden; text-overflow:ellipsis; }
-.leaderboard-table thead th { height:38px; border-bottom:1px solid var(--line); vertical-align:middle; }
-.leaderboard-table thead tr:first-child th { height:48px; }
-.leaderboard-table thead tr:nth-child(2) th { padding-top:7px; padding-bottom:7px; text-align:center; }
+.leaderboard-table thead th { height:27px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.leaderboard-table thead tr:first-child th { height:34px; padding-top:3px; padding-bottom:3px; }
+.leaderboard-table thead tr:nth-child(2) th { padding-top:3px; padding-bottom:3px; text-align:center; }
 .leaderboard-board { overflow:hidden; }
 .leaderboard-board [data-slot="table-container"] { overflow:hidden; }
 .leaderboard-table { width:100%; table-layout:fixed; font-size:13px; }
@@ -101,7 +101,7 @@ tbody tr:hover { background:#f7f4ed; }
 .leaderboard-table .score-col { width:78px; }
 .leaderboard-table .contest-rank-col { width:92px; }
 .leaderboard-table .contest-score-col { width:92px; }
-.leaderboard-table th[scope="colgroup"] { padding-right:4px; padding-left:4px; }
+.leaderboard-table th[scope="colgroup"] { padding:3px 4px; }
 .leaderboard-table tbody td { padding-top:5px; padding-bottom:5px; }
 .leaderboard-table .member { min-width:0; gap:8px; }
 .leaderboard-table .member > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
