@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { type ColumnDef, type ColumnFiltersState, type SortingState, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
+import { type ColumnDef, type SortingState, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { ArrowUpDown, Check, ChevronRight, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import type { LeaderboardMember } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function SortHeader({ label, column }: { label: string; column: { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | "asc" | "desc" } }) {
@@ -20,7 +19,6 @@ function SortHeader({ label, column }: { label: string; column: { toggleSorting:
 const columns: ColumnDef<LeaderboardMember>[] = [
   { accessorKey: "cruel_id", header: ({ column }) => <SortHeader label="群友" column={column} />, cell: ({ row }) => <Link className="users-member" href={`/users/${row.original.user_id}`} onClick={(event) => event.stopPropagation()}><Avatar className="size-9"><AvatarFallback>{row.original.cruel_id.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar><span><strong>{row.original.cruel_id}</strong><small>{row.original.wechat_name || "群友"}</small></span></Link> },
   { accessorKey: "status", header: ({ column }) => <SortHeader label="状态" column={column} />, filterFn: (row, id, value) => value === "all" || row.getValue(id) === value, cell: ({ row }) => row.original.status === "inactive" ? <Badge variant="outline">已退群</Badge> : <Badge className="bg-emerald-50 text-emerald-700" variant="outline">在群</Badge> },
-  { accessorKey: "subgroup", header: "分组", filterFn: (row, id, value) => value === "all" || row.getValue(id) === value, cell: ({ row }) => row.original.subgroup ? <Badge variant="secondary">{row.original.subgroup} 组</Badge> : "—" },
   { accessorKey: "cruel_date", header: ({ column }) => <SortHeader label="加入日期" column={column} /> },
   { accessorKey: "days", header: ({ column }) => <SortHeader label="入群天数" column={column} />, cell: ({ row }) => row.original.days.toLocaleString() },
   { accessorKey: "rating", header: ({ column }) => <SortHeader label="竞赛分" column={column} />, cell: ({ row }) => row.original.rating && row.original.rating > 0 ? row.original.rating.toLocaleString() : "—" },
@@ -33,10 +31,8 @@ export function UsersDirectory({ members }: { members: LeaderboardMember[] }) {
   const [data, setData] = useState(() => members.filter((member) => member.status !== "inactive"));
   const [sorting, setSorting] = useState<SortingState>([{ id: "score", desc: true }]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [refreshState, setRefreshState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [refreshError, setRefreshError] = useState("");
-  const groups = useMemo(() => Array.from(new Set(data.map((member) => member.subgroup).filter((group): group is string => Boolean(group)))).sort(), [data]);
 
   async function refresh() {
     setRefreshState("loading");
@@ -55,12 +51,10 @@ export function UsersDirectory({ members }: { members: LeaderboardMember[] }) {
 
   // TanStack Table returns a stateful instance whose methods are intentionally not memoizable.
   // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({ data, columns, state: { sorting, globalFilter, columnFilters }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, onColumnFiltersChange: setColumnFilters, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), globalFilterFn: (row, _columnId, value) => [row.original.cruel_id, row.original.wechat_name, row.original.subgroup].some((field) => field?.toLowerCase().includes(String(value).trim().toLowerCase())) });
-
-  const groupFilter = (table.getColumn("subgroup")?.getFilterValue() as string) ?? "all";
+  const table = useReactTable({ data, columns, state: { sorting, globalFilter }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), globalFilterFn: (row, _columnId, value) => [row.original.cruel_id, row.original.wechat_name].some((field) => field?.toLowerCase().includes(String(value).trim().toLowerCase())) });
 
   return <div className="users-directory">
-    <div className="users-table-toolbar"><div className="users-table-search"><Search aria-hidden="true" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索姓名或 Cruel ID…" aria-label="搜索群友" /></div><div className="users-table-filters"><Select value={groupFilter} onValueChange={(value) => table.getColumn("subgroup")?.setFilterValue(value === "all" ? undefined : value)}><SelectTrigger aria-label="按分组筛选"><SelectValue placeholder="全部分组" /></SelectTrigger><SelectContent><SelectItem value="all">全部分组</SelectItem>{groups.map((group) => <SelectItem value={group} key={group}>{group} 组</SelectItem>)}</SelectContent></Select><span className="users-result-count">共 {table.getFilteredRowModel().rows.length} 位在群群友</span><Button variant="outline" type="button" onClick={refresh} disabled={refreshState === "loading"}><RefreshCw className={refreshState === "loading" ? "animate-spin" : undefined} aria-hidden="true" />{refreshState === "loading" ? "刷新中…" : "刷新"}</Button></div></div>
+    <div className="users-table-toolbar"><div className="users-table-search"><Search aria-hidden="true" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索姓名或 Cruel ID…" aria-label="搜索群友" /></div><div className="users-table-filters"><span className="users-result-count">共 {table.getFilteredRowModel().rows.length} 位在群群友</span><Button variant="outline" type="button" onClick={refresh} disabled={refreshState === "loading"}><RefreshCw className={refreshState === "loading" ? "animate-spin" : undefined} aria-hidden="true" />{refreshState === "loading" ? "刷新中…" : "刷新"}</Button></div></div>
     {refreshState === "success" ? <p className="users-refresh-status success" role="status"><Check aria-hidden="true" />群友数据已刷新</p> : null}
     {refreshState === "error" ? <p className="users-refresh-status error" role="alert"><TriangleAlert aria-hidden="true" />{refreshError}</p> : null}
     <div className="users-table-shell"><Table className="users-data-table"><TableHeader>{table.getHeaderGroups().map((headerGroup) => <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>)}</TableHeader><TableBody>{table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => <TableRow className="users-clickable-row" key={row.id} tabIndex={0} onClick={() => router.push(`/users/${row.original.user_id}`)} onKeyDown={(event) => { if (event.key === "Enter") router.push(`/users/${row.original.user_id}`); }}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>) : <TableRow><TableCell colSpan={columns.length} className="users-table-empty">没有找到匹配的群友。</TableCell></TableRow>}</TableBody></Table></div>

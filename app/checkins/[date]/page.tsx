@@ -30,7 +30,7 @@ export default async function DailyProblemPage({ params }: { params: Promise<{ d
     <header className="subpage-header"><nav><Link className="brand" href="/"><span className="brand-mark">C</span><span>Cruel Coding</span></Link><div className="nav-header-actions"><Link className="nav-link" href="/checkins">← 每日题目</Link><AuthNav /></div></nav></header>
     <section className="content problem-status-page">
       <SiteTabs />
-      <div className="problem-status-heading"><div><p className="eyebrow">GROUP CHECK-IN</p><h2>{solved} / {rows.length} 已完成</h2><p>最近 48 小时内 AC 该题即视为完成；“未发现”不等同于确定未完成。</p></div></div>
+      <div className="problem-status-heading"><div><p className="eyebrow">GROUP CHECK-IN</p><h2>{solved} / {rows.length} 已完成</h2><p>最近 48 小时内 AC 该题即视为完成；“未打卡”表示在该时间范围内未发现 AC 记录。</p></div></div>
       {problem.number && problem.slug ? <ProblemCheckinRefresh date={date} number={problem.number} slug={problem.slug} initialRows={rows} /> : null}
     </section>
   </main>;
