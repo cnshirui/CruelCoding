@@ -4,6 +4,7 @@ export type LeaderboardMember = {
   user_id: string;
   cruel_id: string;
   cruel_date: string;
+  exit_date?: string | null;
   subgroup: string | null;
   days: number;
   rating: number | null;

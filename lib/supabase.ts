@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 type LeaderboardSource = "supabase" | "snapshot";
 export type ContestDates = Record<number, string>;
 
-const memberColumns = "user_id,cruel_id,cruel_date,subgroup,days,rating,score,contests,wechat_name,wechat_id,referral,status";
+const memberColumns = "user_id,cruel_id,cruel_date,exit_date,subgroup,days,rating,score,contests,wechat_name,wechat_id,referral,status";
 const MEMBER_PAGE_SIZE = 500;
 
 export async function getCommunityMembers(): Promise<{ members: LeaderboardMember[]; source: LeaderboardSource }> {
