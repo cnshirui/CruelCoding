@@ -55,6 +55,7 @@ h2 { margin:0; font-family:Georgia,serif; font-size:clamp(38px,5vw,58px); font-w
 .list-refresh { display:flex; align-items:center; gap:9px; }
 .list-refresh > span { display:flex; align-items:center; gap:4px; color:var(--green); font-size:12px; }
 .list-refresh > span svg { width:14px; height:14px; }
+.list-refresh > span.failed { color:var(--red); }
 .leaderboard-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border-bottom:1px solid var(--line); }
 .leaderboard-search { position:relative; width:min(420px,100%); }
 .leaderboard-search > svg { position:absolute; z-index:1; top:50%; left:12px; width:16px; height:16px; color:var(--muted-text); transform:translateY(-50%); }

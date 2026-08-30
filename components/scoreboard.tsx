@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LeaderboardRefresh } from "@/components/leaderboard-refresh";
 
 function contestRankBand(rank: number | null) {
   if (rank === null || rank <= 0) return "";
@@ -29,7 +30,7 @@ function ContestDate({ value }: { value: string }) {
   return <time dateTime={value} suppressHydrationWarning>{date} · PDT</time>;
 }
 
-export function Leaderboard({ members, contestDates }: { members: LeaderboardMember[]; contestDates: ContestDates }) {
+export function Leaderboard({ members, contestDates, canRefresh = false }: { members: LeaderboardMember[]; contestDates: ContestDates; canRefresh?: boolean }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: "score", desc: true }]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [visibleContestCount, setVisibleContestCount] = useState(3);
@@ -59,7 +60,7 @@ export function Leaderboard({ members, contestDates }: { members: LeaderboardMem
   const table = useReactTable({ data: activeMembers, columns, state: { sorting, globalFilter }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), globalFilterFn: (row, _id, value) => [row.original.cruel_id, row.original.wechat_name, row.original.subgroup].some((field) => field?.toLowerCase().includes(String(value).trim().toLowerCase())) });
 
   return <div className="board leaderboard-board" style={{ width: `${tableWidth}px` }}>
-    <div className="leaderboard-toolbar"><div className="leaderboard-search"><Search aria-hidden="true" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索 CruelID、姓名或分组…" aria-label="搜索排行榜" /></div><div className="leaderboard-toolbar-actions"><Badge variant="outline">{table.getFilteredRowModel().rows.length} 位群友</Badge>{visibleContestCount < allContests.length ? <Button variant="outline" size="sm" onClick={() => setVisibleContestCount((count) => Math.min(count + 3, allContests.length))}>显示更多周赛<ChevronRight aria-hidden="true" /></Button> : null}</div></div>
+    <div className="leaderboard-toolbar"><div className="leaderboard-search"><Search aria-hidden="true" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索 CruelID、姓名或分组…" aria-label="搜索排行榜" /></div><div className="leaderboard-toolbar-actions">{canRefresh ? <LeaderboardRefresh /> : null}<Badge variant="outline">{table.getFilteredRowModel().rows.length} 位群友</Badge>{visibleContestCount < allContests.length ? <Button variant="outline" size="sm" onClick={() => setVisibleContestCount((count) => Math.min(count + 3, allContests.length))}>显示更多周赛<ChevronRight aria-hidden="true" /></Button> : null}</div></div>
     <Table className="leaderboard-table" style={{ width: `${tableWidth}px` }}><colgroup><col className="rank-col" /><col className="member-col" /><col className="date-col" /><col className="days-col" /><col className="rating-col" /><col className="score-col" />{visibleContests.flatMap((contest) => [<col className="contest-rank-col" key={`${contest}-rank`} />, <col className="contest-score-col" key={`${contest}-score`} />])}</colgroup><TableHeader>{table.getHeaderGroups().map((group, groupIndex) => <TableRow key={group.id}>{group.headers.map((header) => {
       const grouped = header.column.columns.length > 0;
       if (groupIndex === 1 && !header.column.parent) return null;

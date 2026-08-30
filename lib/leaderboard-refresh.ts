@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import readXlsxFile from "read-excel-file";
+// The package's "." export is the browser build and parses xlsx XML with DOMParser,
+// which does not exist in the Node runtime this module runs in. Keep the "/node" subpath.
+import readXlsxFile from "read-excel-file/node";
 
 const SOURCES = {
   index_xlsx: "https://github.com/wisdompeak/lc-score-board/raw/refs/heads/gh-pages/generateEXCEL/index.xlsx",
@@ -26,7 +28,7 @@ type LeetCodeContest = {
   cardImg: string | null;
 };
 
-type DownloadedFile = { url: string; bytes: Buffer; arrayBuffer: ArrayBuffer; hash: string };
+type DownloadedFile = { url: string; bytes: Buffer; hash: string };
 
 function sha256(value: string | Buffer) {
   return createHash("sha256").update(value).digest("hex");
@@ -52,9 +54,8 @@ async function download(name: keyof typeof SOURCES): Promise<[typeof name, Downl
   const url = SOURCES[name];
   const response = await fetch(url, { cache: "no-store", headers: { "user-agent": "cruel-coding-refresh/1.0" } });
   if (!response.ok) throw new Error(`WisdomPeak download failed for ${name} (${response.status})`);
-  const arrayBuffer = await response.arrayBuffer();
-  const bytes = Buffer.from(arrayBuffer);
-  return [name, { url, bytes, arrayBuffer, hash: sha256(bytes) }];
+  const bytes = Buffer.from(await response.arrayBuffer());
+  return [name, { url, bytes, hash: sha256(bytes) }];
 }
 
 async function fetchLeetCodeContests() {
@@ -107,8 +108,8 @@ function parseMemberships(text: string) {
 }
 
 async function parseScoreboard(files: Record<keyof typeof SOURCES, DownloadedFile>) {
-  const rows = await readXlsxFile(files.index_xlsx.arrayBuffer);
-  const groupRows = await readXlsxFile(files.group_record.arrayBuffer, { sheet: "Current" });
+  const rows = await readXlsxFile(files.index_xlsx.bytes);
+  const groupRows = await readXlsxFile(files.group_record.bytes, { sheet: "Current" });
   const cruelIds = new Map(files.cruel_ids.bytes.toString("utf8").split(/\r?\n/)
     .map((line) => line.trim()).filter(Boolean).map((id) => [normalize(id), id]));
   const memberships = parseMemberships(files.cruel_dates.bytes.toString("utf8"));
@@ -164,22 +165,24 @@ export async function refreshLeaderboard() {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   if (!url || !secretKey) throw new Error("Supabase refresh credentials are not configured");
 
-  const [downloadedFiles, leetCodeContests] = await Promise.all([
-    Promise.all((Object.keys(SOURCES) as (keyof typeof SOURCES)[]).map(download)),
-    fetchLeetCodeContests(),
-  ]);
+  const downloadedFiles = await Promise.all((Object.keys(SOURCES) as (keyof typeof SOURCES)[]).map(download));
   const files = Object.fromEntries(downloadedFiles) as Record<keyof typeof SOURCES, DownloadedFile>;
   const sourceHashes = Object.fromEntries(Object.entries(files).map(([name, file]) => [name, file.hash]));
   const combinedHash = sha256(JSON.stringify(sourceHashes));
   const supabase = createClient(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  // WisdomPeak only republishes the scoreboard after a contest is scored. When the four source
+  // files still hash to a snapshot we already hold, nothing upstream changed, so this returns
+  // before any write — no contest upsert, no xlsx parse, no snapshot replace.
+  const { data: existing, error: lookupError } = await supabase.from("scoreboard_snapshots").select("id").eq("combined_hash", combinedHash).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing) return { changed: false, snapshotId: existing.id, memberCount: null, contestCount: null };
+
+  const [leetCodeContests, { members, latestContest }] = await Promise.all([fetchLeetCodeContests(), parseScoreboard(files)]);
   if (!leetCodeContests.length) throw new Error("LeetCode contest history returned no weekly contests");
   const { error: contestError } = await supabase.from("contests").upsert(leetCodeContests, { onConflict: "contest_number" });
   if (contestError) throw contestError;
-  const { data: existing, error: lookupError } = await supabase.from("scoreboard_snapshots").select("id").eq("combined_hash", combinedHash).maybeSingle();
-  if (lookupError) throw lookupError;
-  if (existing) return { changed: false, snapshotId: existing.id, memberCount: null, contestCount: leetCodeContests.length };
 
-  const { members, latestContest } = await parseScoreboard(files);
   const payload = { combined_hash: combinedHash, source_hashes: sourceHashes, source_urls: SOURCES, latest_contest: latestContest, members };
   const { data: snapshotId, error } = await supabase.rpc("replace_scoreboard_snapshot", { payload });
   if (error) throw error;

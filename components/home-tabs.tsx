@@ -89,11 +89,11 @@ export function GroupRules() {
   );
 }
 
-export function HomeTabs({ members, contestDates }: { members: LeaderboardMember[]; contestDates: ContestDates }) {
+export function HomeTabs({ members, contestDates, canRefresh = false }: { members: LeaderboardMember[]; contestDates: ContestDates; canRefresh?: boolean }) {
   return (
     <>
         <div>
-          <Leaderboard members={members} contestDates={contestDates} />
+          <Leaderboard members={members} contestDates={contestDates} canRefresh={canRefresh} />
         </div>
     </>
   );
