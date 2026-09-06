@@ -103,6 +103,7 @@ tbody tr:hover { background:#f7f4ed; }
 .leaderboard-table .contest-rank-col { width:92px; }
 .leaderboard-table .contest-score-col { width:92px; }
 .leaderboard-table th[scope="colgroup"] { padding:3px 4px; }
+.leaderboard-table thead tr:nth-child(2) th .contest-sort-header { height:22px; padding:0 6px; color:#8a8881; font-size:11px; letter-spacing:.09em; text-transform:uppercase; }
 .leaderboard-table tbody td { padding-top:5px; padding-bottom:5px; }
 .leaderboard-table .member { min-width:0; gap:8px; }
 .leaderboard-table .member > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }

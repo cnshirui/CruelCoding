@@ -21,8 +21,18 @@ function contestRankBand(rank: number | null) {
   return "contest-rank-pink";
 }
 
-function SortHeader({ label, column }: { label: string; column: { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | "asc" | "desc" } }) {
-  return <Button variant="ghost" size="sm" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>{label}<ArrowUpDown /></Button>;
+type SortableColumn = { toggleSorting: (desc?: boolean) => void; getIsSorted: () => false | "asc" | "desc" };
+
+// `descFirst` makes the first click sort best-to-worst for columns where a bigger number is better (score);
+// rank keeps the default so the first click puts the best (smallest) rank on top.
+function SortHeader({ label, column, descFirst = false, className }: { label: string; column: SortableColumn; descFirst?: boolean; className?: string }) {
+  const sorted = column.getIsSorted();
+  const desc = sorted === false ? descFirst : sorted === "asc";
+  return <Button variant="ghost" size="sm" className={className} aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined} onClick={() => column.toggleSorting(desc)}>{label}<ArrowUpDown /></Button>;
+}
+
+function contestResult(member: LeaderboardMember, contest: number) {
+  return member.contests.find((entry) => entry.contest === contest);
 }
 
 function ContestDate({ value }: { value: string }) {
@@ -49,8 +59,9 @@ export function Leaderboard({ members, contestDates, canRefresh = false }: { mem
       id: `contest-${contest}`,
       header: () => <span className="contest-table-heading"><strong>Weekly {contest}</strong>{contestDates[contest] ? <ContestDate value={contestDates[contest]} /> : <small>PDT</small>}</span>,
       columns: [
-        { id: `contest-${contest}-rank`, header: "Rank", cell: ({ row }) => { const result = row.original.contests.find((entry) => entry.contest === contest); return <span className={`contest-rank-badge ${contestRankBand(result?.rank ?? null)}`}>{result?.rank ? result.rank.toLocaleString() : "—"}</span>; }, enableSorting: false },
-        { id: `contest-${contest}-score`, header: "Score", cell: ({ row }) => { const result = row.original.contests.find((entry) => entry.contest === contest); return result ? result.score.toFixed(1) : "—"; }, enableSorting: false },
+        // Members without a result (or without a rank) return undefined so `sortUndefined: "last"` keeps them at the bottom in both directions.
+        { id: `contest-${contest}-rank`, accessorFn: (member) => { const rank = contestResult(member, contest)?.rank; return rank && rank > 0 ? rank : undefined; }, header: ({ column }) => <SortHeader label="Rank" column={column} className="contest-sort-header" />, cell: ({ row }) => { const result = contestResult(row.original, contest); return <span className={`contest-rank-badge ${contestRankBand(result?.rank ?? null)}`}>{result?.rank ? result.rank.toLocaleString() : "—"}</span>; }, sortingFn: "basic", sortUndefined: "last" },
+        { id: `contest-${contest}-score`, accessorFn: (member) => contestResult(member, contest)?.score, header: ({ column }) => <SortHeader label="Score" column={column} descFirst className="contest-sort-header" />, cell: ({ row }) => { const result = contestResult(row.original, contest); return result ? result.score.toFixed(1) : "—"; }, sortingFn: "basic", sortUndefined: "last" },
       ],
     })),
   ], [contestDates, visibleContests]);
