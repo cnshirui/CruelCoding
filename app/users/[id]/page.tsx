@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUserDetail } from "@/lib/supabase";
+import { ContestRankLookup } from "@/components/contest-rank-lookup";
+import type { ContestScore as ContestResult } from "@/lib/types";
 import { AuthNav } from "@/components/auth-nav";
 import { SiteTabs } from "@/components/site-tabs";
 
 export const revalidate = 300;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function ContestRank({ cruelId, contest }: { cruelId: string; contest: ContestResult }) {
+  if (!contest.rank) return "—";
+  return <ContestRankLookup contest={contest.contest} rank={contest.rank} username={cruelId}>#{contest.rank.toLocaleString()}</ContestRankLookup>;
+}
 
 export default async function UserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,7 +59,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
         <div className="profile-section">
           <div className="section-heading"><div><p className="eyebrow">RECENT HISTORY</p><h2>Contests</h2></div></div>
           <div className="table-wrap profile-table"><table><thead><tr><th>Contest</th><th>Rank</th><th>Participants</th><th>Score</th></tr></thead><tbody>
-            {recentContests.map((contest) => <tr key={contest.contest}><td>Weekly {contest.contest}</td><td>{contest.rank ? `#${contest.rank.toLocaleString()}` : "—"}</td><td>{contest.participants.toLocaleString()}</td><td><strong>{contest.score.toFixed(1)}</strong></td></tr>)}
+            {recentContests.map((contest) => <tr key={contest.contest}><td>Weekly {contest.contest}</td><td><ContestRank cruelId={member.cruel_id} contest={contest} /></td><td>{contest.participants.toLocaleString()}</td><td><strong>{contest.score.toFixed(1)}</strong></td></tr>)}
           </tbody></table></div>
         </div>
       </section>

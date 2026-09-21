@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ContestRankLookup } from "@/components/contest-rank-lookup";
 import { LeaderboardRefresh } from "@/components/leaderboard-refresh";
 import { TableColumnSettings, useColumnLayout } from "@/components/table-column-settings";
 
@@ -62,8 +63,8 @@ export function Leaderboard({ members, contestDates, canRefresh = false }: { mem
       meta: { label: `Weekly ${contest}` },
       columns: [
         // Members without a result (or without a rank) return undefined so `sortUndefined: "last"` keeps them at the bottom in both directions.
-        { id: `contest-${contest}-rank`, accessorFn: (member) => { const rank = contestResult(member, contest)?.rank; return rank && rank > 0 ? rank : undefined; }, header: ({ column }) => <SortHeader label="Rank" column={column} className="contest-sort-header" />, meta: { label: `Weekly ${contest} Rank`, width: 92 }, cell: ({ row }) => { const result = contestResult(row.original, contest); return <span className={`contest-rank-badge ${contestRankBand(result?.rank ?? null)}`}>{result?.rank ? result.rank.toLocaleString() : "—"}</span>; }, sortingFn: "basic", sortUndefined: "last" },
-        { id: `contest-${contest}-score`, accessorFn: (member) => contestResult(member, contest)?.score, header: ({ column }) => <SortHeader label="Score" column={column} descFirst className="contest-sort-header" />, meta: { label: `Weekly ${contest} Score`, width: 92 }, cell: ({ row }) => { const result = contestResult(row.original, contest); return result ? result.score.toFixed(1) : "—"; }, sortingFn: "basic", sortUndefined: "last" },
+        { id: `contest-${contest}-rank`, accessorFn: (member) => { const rank = contestResult(member, contest)?.rank; return rank && rank > 0 ? rank : undefined; }, header: ({ column }) => <SortHeader label="Rank" column={column} className="contest-sort-header" />, meta: { label: `Weekly ${contest} Rank`, width: 92 }, cell: ({ row }) => { const result = contestResult(row.original, contest); const badge = <span className={`contest-rank-badge ${contestRankBand(result?.rank ?? null)}`}>{result?.rank ? result.rank.toLocaleString() : "—"}</span>; return <ContestRankLookup contest={contest} rank={result?.rank} username={row.original.cruel_id}>{badge}</ContestRankLookup>; }, sortingFn: "basic", sortUndefined: "last" },
+        { id: `contest-${contest}-score`, accessorFn: (member) => contestResult(member, contest)?.score, header: ({ column }) => <SortHeader label="Score" column={column} descFirst className="contest-sort-header" />, meta: { label: `Weekly ${contest} Score`, width: 92 }, cell: ({ row }) => contestResult(row.original, contest)?.score.toFixed(1) ?? "—", sortingFn: "basic", sortUndefined: "last" },
       ],
     })),
   ], [contestDates, visibleContests]);

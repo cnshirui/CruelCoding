@@ -65,6 +65,8 @@ h2 { margin:0; font-family:Georgia,serif; font-size:clamp(38px,5vw,58px); font-w
 .contest-table-heading { display:flex; min-width:0; align-items:center; justify-content:center; gap:5px; overflow:visible; text-align:center; white-space:nowrap; }
 .contest-table-heading strong { color:#58645f; font-size:10px; }
 .contest-table-heading time,.contest-table-heading small { flex-shrink:0; margin:0; color:#7a8580; font-family:var(--font-mono),monospace; font-size:9px; font-weight:500; text-transform:none; }
+.contest-rank-link { padding:0; border:0; color:inherit; background:none; font:inherit; text-decoration:underline dotted; text-underline-offset:3px; cursor:pointer; }
+.contest-rank-link:hover { color:var(--red); text-decoration-style:solid; }
 .contest-rank-badge { display:inline-grid; min-width:48px; min-height:28px; place-items:center; padding:3px 5px; border-radius:6px; }
 .board { overflow:hidden; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:0 18px 60px #2520190d; }
 .controls { display:flex; justify-content:space-between; gap:16px; padding:18px; border-bottom:1px solid var(--line); }
