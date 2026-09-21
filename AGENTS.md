@@ -15,3 +15,13 @@
 - Refresh actions must clearly communicate loading, success, and error states and update the displayed table data without requiring a manual page reload.
 - Every list table must support column visibility and column reordering. Implement both with TanStack Table state (`columnVisibility`, `columnOrder`) through the shared `TableColumnSettings` component and `useColumnLayout` hook in `components/table-column-settings.tsx`; the picker UI uses the shadcn/ui Popover (or DropdownMenu) primitives and the drag-and-drop ordering uses dnd-kit. Give every column a `meta.label` so it has a readable name in the picker. Do not hand-roll drag logic or introduce another DnD library.
 - Reuse components from `components/ui` instead of creating ad hoc table, input, button, select, badge, avatar, popover, dropdown, or checkbox primitives.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
