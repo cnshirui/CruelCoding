@@ -8,7 +8,7 @@
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
 body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--font-geist), sans-serif; }
-a { color:inherit; }
+@layer base { a { color:inherit; } }
 .hero { min-height:520px; padding:0 clamp(24px,6vw,96px) 64px; color:#f8f3e9; background:radial-gradient(circle at 78% 28%,#3c4b46 0,transparent 26%),linear-gradient(135deg,#18201e,#0f1312 65%); }
 .home-header { padding:0 clamp(24px,6vw,96px); color:var(--ink); background:var(--paper); }
 .subpage-header { padding:0 clamp(24px,6vw,96px) 12px; color:var(--ink); background:var(--paper); }
