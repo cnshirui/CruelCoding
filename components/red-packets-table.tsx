@@ -15,10 +15,9 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, Search } from "lucide-react";
 import type { RedPacket } from "@/lib/supabase";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { saveRedPackets } from "@/components/red-packet-zone";
+import { RedPacketStatus, saveRedPackets } from "@/components/red-packet-zone";
 import { Input } from "@/components/ui/input";
 import { ListRefresh } from "@/components/list-refresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -69,12 +68,12 @@ export function RedPacketsTable({ packets, isAdmin }: { packets: RedPacket[]; is
     {
       id: "paid",
       accessorFn: (row) => Boolean(row.paid_at),
-      meta: { label: "已发" },
-      header: ({ column }) => <SortHeader label="已发" column={column} />,
+      meta: { label: "状态" },
+      header: ({ column }) => <SortHeader label="状态" column={column} />,
       cell: ({ row }) => {
         const packet = row.original;
-        if (!isAdmin) return packet.paid_at ? <Badge variant="outline" className="bg-emerald-50 text-emerald-700">已发</Badge> : <span className="text-muted-foreground">未标记</span>;
-        return <Checkbox
+        if (!isAdmin) return <RedPacketStatus paid={Boolean(packet.paid_at)} showLabel />;
+        return <div className="flex items-center gap-2"><Checkbox
           checked={Boolean(packet.paid_at)}
           disabled={saving === packet.id}
           aria-label={`${packet.member_name} 已发红包`}
@@ -90,7 +89,7 @@ export function RedPacketsTable({ packets, isAdmin }: { packets: RedPacket[]; is
               setSaving(null);
             }
           }}
-        />;
+        /><RedPacketStatus paid={Boolean(packet.paid_at)} showLabel /></div>;
       },
     },
   ], [isAdmin, router, saving]);

@@ -2,13 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy } from "lucide-react";
+import { Check, CircleCheck, Copy } from "lucide-react";
 import type { RedPacketZone } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
 export type RedPacketRow = { contestId: number; userId: string | null; memberName: string; amount: number; paid?: boolean };
+
+// 🧧 still owes this week's packet; the green check means the owner marked it as sent.
+export function RedPacketStatus({ paid, showLabel = false }: { paid: boolean; showLabel?: boolean }) {
+  return paid
+    ? <span className="inline-flex items-center gap-1 text-emerald-700" title="已发红包"><CircleCheck className="size-4" aria-hidden="true" />{showLabel ? "已发" : <span className="sr-only">已发红包</span>}</span>
+    : <span className="inline-flex items-center gap-1 text-rose-700" title="待发红包"><span aria-hidden="true">🧧</span>{showLabel ? "待发" : <span className="sr-only">待发红包</span>}</span>;
+}
 
 export async function saveRedPackets(rows: RedPacketRow[]) {
   const response = await fetch("/api/red-packets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rows }) });
@@ -60,8 +67,9 @@ export function RedPacketZonePanel({ zone, defaultAmount, isAdmin }: { zone: Red
 
     <ul className="flex flex-wrap gap-2">
       {candidates.map((member) => <li key={member.user_id}>
-        <label className={`flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm ${member.paid ? "bg-emerald-50 text-emerald-700 line-through" : ""}`}>
+        <label className={`flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm ${member.paid ? "bg-emerald-50 text-emerald-700" : "bg-rose-50"}`}>
           {isAdmin ? <Checkbox checked={member.paid} disabled={pending} onCheckedChange={(checked) => run(() => saveRedPackets([rowOf(member, checked === true)]), checked === true ? `已标记 ${nameOf(member)} 发过红包。` : `已取消 ${nameOf(member)} 的标记。`)} aria-label={`${nameOf(member)} 已发红包`} /> : null}
+          <RedPacketStatus paid={member.paid} />
           <span>{nameOf(member)}</span>
           <span className="font-mono text-xs text-muted-foreground">{member.score}</span>
         </label>
