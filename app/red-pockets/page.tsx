@@ -3,6 +3,7 @@ import { AuthNav } from "@/components/auth-nav";
 import { RedPocketsTable } from "@/components/red-pockets-table";
 import { SiteTabs } from "@/components/site-tabs";
 import { RedPocketZonePanel } from "@/components/red-pocket-zone";
+import { redPocketState } from "@/lib/red-pocket-state";
 import { isRedPocketAdmin } from "@/lib/red-pocket-admin";
 import { getRedPocketZone, getRedPockets } from "@/lib/supabase";
 
@@ -20,6 +21,9 @@ export default async function RedPocketsPage() {
     }),
     isRedPocketAdmin(),
   ]);
+  const statuses = Object.fromEntries(
+    pockets.filter((pocket) => pocket.user_id && pocket.contest_id === zone?.contest.id).map((pocket) => [pocket.user_id, redPocketState(pocket)]),
+  );
   const latestAmount = pockets.toSorted((a, b) => (b.contest?.start_time ?? "").localeCompare(a.contest?.start_time ?? ""))[0]?.amount_rmb ?? 111;
 
   return (
@@ -38,7 +42,7 @@ export default async function RedPocketsPage() {
       </header>
       <section className="content home-content space-y-5">
         <SiteTabs />
-        <RedPocketZonePanel zone={zone} defaultAmount={latestAmount} isAdmin={isAdmin} />
+        <RedPocketZonePanel zone={zone} statuses={statuses} defaultAmount={latestAmount} isAdmin={isAdmin} />
         <RedPocketsTable pockets={pockets} isAdmin={isAdmin} />
       </section>
     </main>

@@ -4,6 +4,7 @@ import { HomeTabs } from "@/components/home-tabs";
 import { getLeaderboard } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SiteTabs } from "@/components/site-tabs";
+import { isRedPocketAdmin } from "@/lib/red-pocket-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,7 @@ async function isSignedIn() {
 }
 
 export default async function RanksPage() {
-  const { members, contestDates, redPockets } = await getLeaderboard();
-  const canRefresh = await isSignedIn();
+  const [{ members, contestDates, contestIds, redPockets }, canRefresh, isRedPocketOwner] = await Promise.all([getLeaderboard(), isSignedIn(), isRedPocketAdmin()]);
 
   return (
     <main>
@@ -35,7 +35,7 @@ export default async function RanksPage() {
       </header>
       <section className="content home-content" id="top">
         <SiteTabs />
-        <HomeTabs members={members} contestDates={contestDates} redPockets={redPockets} canRefresh={canRefresh} />
+        <HomeTabs members={members} contestDates={contestDates} redPockets={redPockets} contestIds={contestIds} isRedPocketAdmin={isRedPocketOwner} canRefresh={canRefresh} />
       </section>
     </main>
   );

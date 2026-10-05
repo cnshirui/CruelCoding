@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { type ColumnDef, type SortingState, flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable } from "@tanstack/react-table";
 import { ArrowUpDown, ChevronRight, Search } from "lucide-react";
 import type { LeaderboardMember } from "@/lib/types";
-import type { ContestDates, RedPocketMarks } from "@/lib/supabase";
-import { RedPocketStatus } from "@/components/red-pocket-zone";
+import type { ContestDates, ContestIds, RedPocketMarks } from "@/lib/supabase";
+import { RedPocketStatus, RedPocketStatusButton } from "@/components/red-pocket-zone";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ function ContestDate({ value }: { value: string }) {
   return <time dateTime={value} suppressHydrationWarning>{date} · PDT</time>;
 }
 
-export function Leaderboard({ members, contestDates, redPockets = {}, canRefresh = false }: { members: LeaderboardMember[]; contestDates: ContestDates; redPockets?: RedPocketMarks; canRefresh?: boolean }) {
+export function Leaderboard({ members, contestDates, redPockets = {}, contestIds = {}, isRedPocketAdmin = false, canRefresh = false }: { members: LeaderboardMember[]; contestDates: ContestDates; redPockets?: RedPocketMarks; contestIds?: ContestIds; isRedPocketAdmin?: boolean; canRefresh?: boolean }) {
   const [sorting, setSorting] = useState<SortingState>([{ id: "score", desc: true }]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [visibleContestCount, setVisibleContestCount] = useState(3);
@@ -64,11 +64,11 @@ export function Leaderboard({ members, contestDates, redPockets = {}, canRefresh
       meta: { label: `Weekly ${contest}` },
       columns: [
         // Members without a result (or without a rank) return undefined so `sortUndefined: "last"` keeps them at the bottom in both directions.
-        { id: `contest-${contest}-rank`, accessorFn: (member) => { const rank = contestResult(member, contest)?.rank; return rank && rank > 0 ? rank : undefined; }, header: ({ column }) => <SortHeader label="Rank" column={column} className="contest-sort-header" />, meta: { label: `Weekly ${contest} Rank`, width: 92 }, cell: ({ row }) => { const result = contestResult(row.original, contest); const badge = <span className={`contest-rank-badge ${contestRankBand(result?.rank ?? null)}`}>{result?.rank ? result.rank.toLocaleString() : "—"}</span>; const paid = redPockets[`${contest}:${row.original.user_id}`]; return <span className="inline-flex items-center gap-1"><ContestRankLookup contest={contest} rank={result?.rank} username={row.original.cruel_id}>{badge}</ContestRankLookup>{paid === undefined ? null : <RedPocketStatus paid={paid} />}</span>; }, sortingFn: "basic", sortUndefined: "last" },
+        { id: `contest-${contest}-rank`, accessorFn: (member) => { const rank = contestResult(member, contest)?.rank; return rank && rank > 0 ? rank : undefined; }, header: ({ column }) => <SortHeader label="Rank" column={column} className="contest-sort-header" />, meta: { label: `Weekly ${contest} Rank`, width: 116 }, cell: ({ row }) => { const result = contestResult(row.original, contest); const badge = <span className={`contest-rank-badge ${contestRankBand(result?.rank ?? null)}`}>{result?.rank ? result.rank.toLocaleString() : "—"}</span>; const status = redPockets[`${contest}:${row.original.user_id}`]; const contestId = contestIds[contest]; return <span className="inline-flex items-center gap-1"><ContestRankLookup contest={contest} rank={result?.rank} username={row.original.cruel_id}>{badge}</ContestRankLookup>{isRedPocketAdmin && contestId ? <RedPocketStatusButton status={status} contestId={contestId} userId={row.original.user_id} memberName={row.original.wechat_name || row.original.cruel_id} /> : status ? <RedPocketStatus status={status} /> : null}</span>; }, sortingFn: "basic", sortUndefined: "last" },
         { id: `contest-${contest}-score`, accessorFn: (member) => contestResult(member, contest)?.score, header: ({ column }) => <SortHeader label="Score" column={column} descFirst className="contest-sort-header" />, meta: { label: `Weekly ${contest} Score`, width: 92 }, cell: ({ row }) => contestResult(row.original, contest)?.score.toFixed(1) ?? "—", sortingFn: "basic", sortUndefined: "last" },
       ],
     })),
-  ], [contestDates, redPockets, visibleContests]);
+  ], [contestDates, contestIds, isRedPocketAdmin, redPockets, visibleContests]);
 
   // TanStack Table returns a stateful instance whose methods are intentionally not memoizable.
   // eslint-disable-next-line react-hooks/incompatible-library

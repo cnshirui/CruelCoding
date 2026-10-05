@@ -1,25 +1,36 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@supabase/supabase-js";
+import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 import { isRedPocketAdmin } from "@/lib/red-pocket-admin";
 
 export const runtime = "nodejs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Row = { contestId: number; userId: string | null; memberName: string; amount: number; paid?: boolean };
+const STATUSES = ["none", "owed", "paid", "crying"] as const;
+type Status = (typeof STATUSES)[number];
+type Row = { contestId: number; userId: string | null; memberName: string; amount?: number; status?: Status };
 
 function isRow(value: unknown): value is Row {
   const row = value as Row;
   return Number.isInteger(row?.contestId)
     && (row.userId === null || (typeof row.userId === "string" && UUID.test(row.userId)))
     && typeof row.memberName === "string" && row.memberName.trim() !== ""
-    && Number.isInteger(row.amount) && row.amount > 0
-    && (row.paid === undefined || typeof row.paid === "boolean");
+    && (row.amount === undefined || (Number.isInteger(row.amount) && row.amount > 0))
+    && (row.status === undefined || STATUSES.includes(row.status));
 }
 
-// Records who is in a contest's red-pocket zone. `paid` toggles the sent mark; leaving it out
-// only makes sure the row exists, so saving the zone never clears a mark already set.
+// Marks added from the leaderboard carry no amount: reuse the contest's existing amount, or
+// one yuan per current member plus the owner, which is what the group charges.
+async function contestAmount(database: SupabaseClient, contestId: number) {
+  const { data } = await database.from("red_pockets").select("amount_rmb").eq("contest_id", contestId).limit(1).maybeSingle();
+  if (data) return data.amount_rmb as number;
+  const { count } = await database.from("current_scoreboard").select("user_id", { count: "exact", head: true });
+  return (count ?? 0) + 1;
+}
+
+// Records who is in a contest's red-pocket zone. `status` sets the mark ("none" removes the
+// row); leaving it out only makes sure the row exists, so saving the zone never clears a mark.
 export async function POST(request: Request) {
   if (!(await isRedPocketAdmin())) return NextResponse.json({ error: "只有群主可以标记红包。" }, { status: 403 });
 
@@ -41,13 +52,24 @@ export async function POST(request: Request) {
     ).limit(1).maybeSingle();
     if (findError) return NextResponse.json({ error: findError.message }, { status: 500 });
 
-    const paid = row.paid === undefined ? {} : { paid_at: row.paid ? new Date().toISOString() : null };
+    if (row.status === "none") {
+      const { error } = existing ? await database.from("red_pockets").delete().eq("id", existing.id) : { error: null };
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      continue;
+    }
+
+    const mark = row.status === undefined ? {} : {
+      paid_at: row.status === "paid" ? new Date().toISOString() : null,
+      crying_poor: row.status === "crying",
+    };
+    const amount = row.amount ?? (existing ? undefined : await contestAmount(database, row.contestId));
     const { error } = existing
-      ? await database.from("red_pockets").update({ user_id: row.userId, amount_rmb: row.amount, ...paid }).eq("id", existing.id)
-      : await database.from("red_pockets").insert({ contest_id: row.contestId, user_id: row.userId, member_name: memberName, amount_rmb: row.amount, ...paid });
+      ? await database.from("red_pockets").update({ user_id: row.userId, ...(amount ? { amount_rmb: amount } : {}), ...mark }).eq("id", existing.id)
+      : await database.from("red_pockets").insert({ contest_id: row.contestId, user_id: row.userId, member_name: memberName, amount_rmb: amount, ...mark });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   revalidatePath("/red-pockets");
+  revalidatePath("/");
   return NextResponse.json({ ok: true });
 }

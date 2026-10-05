@@ -1,11 +1,14 @@
 import snapshot from "@/data/leaderboard.json";
 import type { LeaderboardMember } from "@/lib/types";
 import { createClient } from "@supabase/supabase-js";
+import type { RedPocketState } from "@/lib/red-pocket-state";
 
 type LeaderboardSource = "supabase" | "snapshot";
 export type ContestDates = Record<number, string>;
-// "<contest_number>:<user_id>" → whether that red pocket was marked as sent.
-export type RedPocketMarks = Record<string, boolean>;
+// "<contest_number>:<user_id>" → that member's red-pocket mark for the contest.
+export type RedPocketMarks = Record<string, RedPocketState>;
+// contest_number → contests.id, so the leaderboard can save marks.
+export type ContestIds = Record<number, number>;
 
 const memberColumns = "user_id,cruel_id,cruel_date,exit_date,subgroup,days,rating,score,contests,wechat_name,wechat_id,referral,status";
 const MEMBER_PAGE_SIZE = 500;
@@ -35,7 +38,7 @@ export async function getCommunityMembers(): Promise<{ members: LeaderboardMembe
   return { members: (snapshot as LeaderboardMember[]).map((member) => ({ ...member, status: "active" })), source: "snapshot" };
 }
 
-export async function getLeaderboard(): Promise<{ members: LeaderboardMember[]; source: LeaderboardSource; contestDates: ContestDates; redPockets: RedPocketMarks }> {
+export async function getLeaderboard(): Promise<{ members: LeaderboardMember[]; source: LeaderboardSource; contestDates: ContestDates; contestIds: ContestIds; redPockets: RedPocketMarks }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (url && key) {
@@ -46,29 +49,32 @@ export async function getLeaderboard(): Promise<{ members: LeaderboardMember[]; 
         .select("user_id,cruel_id,cruel_date,subgroup,days,rating,score,contests,wechat_name,wechat_id,referral"),
       supabase
         .from("contests")
-        .select("contest_number,start_time")
+        .select("id,contest_number,start_time")
         .not("contest_number", "is", null)
         .not("start_time", "is", null),
       supabase
         .from("red_pockets")
-        .select("user_id,paid_at,contest:contests(contest_number)")
+        .select("user_id,paid_at,crying_poor,contest:contests(contest_number)")
         .not("user_id", "is", null),
     ]);
     if (pocketsError) console.error("Supabase red pockets unavailable:", pocketsError.message);
     const redPockets: RedPocketMarks = Object.fromEntries(
-      ((pockets ?? []) as unknown as { user_id: string; paid_at: string | null; contest: { contest_number: number | null } | null }[])
-        .map((pocket) => [`${pocket.contest?.contest_number}:${pocket.user_id}`, Boolean(pocket.paid_at)]),
+      ((pockets ?? []) as unknown as { user_id: string; paid_at: string | null; crying_poor: boolean; contest: { contest_number: number | null } | null }[])
+        .map((pocket) => [`${pocket.contest?.contest_number}:${pocket.user_id}`, pocket.paid_at ? "paid" : pocket.crying_poor ? "crying" : "owed"]),
+    );
+    const contestIds: ContestIds = Object.fromEntries(
+      (contests ?? []).map((contest) => [contest.contest_number, contest.id]),
     );
     const contestDates = Object.fromEntries(
       (contests ?? []).map((contest) => [contest.contest_number, contest.start_time]),
     ) as ContestDates;
     if (!error && data?.length) {
       if (contestsError) console.error("Supabase contest dates unavailable:", contestsError.message);
-      return { members: data as LeaderboardMember[], source: "supabase", contestDates, redPockets };
+      return { members: data as LeaderboardMember[], source: "supabase", contestDates, contestIds, redPockets };
     }
     if (error) console.error("Supabase leaderboard unavailable; using bundled snapshot:", error.message);
   }
-  return { members: snapshot as LeaderboardMember[], source: "snapshot", contestDates: {}, redPockets: {} };
+  return { members: snapshot as LeaderboardMember[], source: "snapshot", contestDates: {}, contestIds: {}, redPockets: {} };
 }
 
 export async function getUserDetail(userId: string): Promise<LeaderboardMember | null> {
@@ -94,6 +100,7 @@ export type RedPocket = {
   user_id: string | null;
   amount_rmb: number;
   paid_at: string | null;
+  crying_poor: boolean;
   contest: { contest_number: number | null; title: string; start_time: string | null } | null;
 };
 
@@ -110,7 +117,7 @@ function publicClient() {
 export async function getRedPockets(): Promise<RedPocket[]> {
   const { data, error } = await publicClient()
     .from("red_pockets")
-    .select("id,contest_id,member_name,user_id,amount_rmb,paid_at,contest:contests(contest_number,title,start_time)");
+    .select("id,contest_id,member_name,user_id,amount_rmb,paid_at,crying_poor,contest:contests(contest_number,title,start_time)");
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as RedPocket[];
 }

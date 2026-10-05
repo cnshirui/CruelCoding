@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
   type SortingState,
@@ -16,8 +15,8 @@ import {
 import { ArrowUpDown, Search } from "lucide-react";
 import type { RedPocket } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RedPocketStatus, saveRedPockets } from "@/components/red-pocket-zone";
+import { RedPocketStatus, RedPocketStatusButton } from "@/components/red-pocket-zone";
+import { redPocketState } from "@/lib/red-pocket-state";
 import { Input } from "@/components/ui/input";
 import { ListRefresh } from "@/components/list-refresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,9 +29,6 @@ function SortHeader({ label, column }: { label: string; column: { toggleSorting:
 }
 
 export function RedPocketsTable({ pockets, isAdmin }: { pockets: RedPocket[]; isAdmin: boolean }) {
-  const router = useRouter();
-  const [saving, setSaving] = useState<number | null>(null);
-  const [saveError, setSaveError] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "date", desc: true }]);
   const [globalFilter, setGlobalFilter] = useState("");
   const { columnOrder, columnVisibility, setColumnOrder, setColumnVisibility } = useColumnLayout("red-pockets");
@@ -67,32 +63,18 @@ export function RedPocketsTable({ pockets, isAdmin }: { pockets: RedPocket[]; is
     },
     {
       id: "paid",
-      accessorFn: (row) => Boolean(row.paid_at),
+      accessorFn: (row) => redPocketState(row),
       meta: { label: "状态" },
       header: ({ column }) => <SortHeader label="状态" column={column} />,
       cell: ({ row }) => {
         const pocket = row.original;
-        if (!isAdmin) return <RedPocketStatus paid={Boolean(pocket.paid_at)} showLabel />;
-        return <div className="flex items-center gap-2"><Checkbox
-          checked={Boolean(pocket.paid_at)}
-          disabled={saving === pocket.id}
-          aria-label={`${pocket.member_name} 已发红包`}
-          onCheckedChange={async (checked) => {
-            setSaving(pocket.id);
-            setSaveError("");
-            try {
-              await saveRedPockets([{ contestId: pocket.contest_id, userId: pocket.user_id, memberName: pocket.member_name, amount: pocket.amount_rmb, paid: checked === true }]);
-              router.refresh();
-            } catch (error) {
-              setSaveError(error instanceof Error ? error.message : "保存失败。");
-            } finally {
-              setSaving(null);
-            }
-          }}
-        /><RedPocketStatus paid={Boolean(pocket.paid_at)} showLabel /></div>;
+        const status = redPocketState(pocket);
+        return isAdmin
+          ? <RedPocketStatusButton status={status} contestId={pocket.contest_id} userId={pocket.user_id} memberName={pocket.member_name} showLabel />
+          : <RedPocketStatus status={status} showLabel />;
       },
     },
-  ], [isAdmin, router, saving]);
+  ], [isAdmin]);
 
   // TanStack Table returns a stateful instance whose methods are intentionally not memoizable.
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -114,7 +96,7 @@ export function RedPocketsTable({ pockets, isAdmin }: { pockets: RedPocket[]; is
   return <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
     <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索群友或周赛…" className="pl-8" aria-label="搜索周赛红包" /></div>
-      <div className="flex items-center gap-2"><ListRefresh /><TableColumnSettings table={table} />{saveError ? <span role="alert" className="text-xs text-destructive">{saveError}</span> : null}<span className="whitespace-nowrap text-xs text-muted-foreground">{table.getFilteredRowModel().rows.length} 条</span></div>
+      <div className="flex items-center gap-2"><ListRefresh /><TableColumnSettings table={table} /><span className="whitespace-nowrap text-xs text-muted-foreground">{table.getFilteredRowModel().rows.length} 条</span></div>
     </div>
 
     <Table>
