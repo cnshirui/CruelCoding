@@ -2,15 +2,25 @@ import Link from "next/link";
 import { AuthNav } from "@/components/auth-nav";
 import { RedPacketsTable } from "@/components/red-packets-table";
 import { SiteTabs } from "@/components/site-tabs";
-import { getRedPackets } from "@/lib/supabase";
+import { RedPacketZonePanel } from "@/components/red-packet-zone";
+import { isRedPacketAdmin } from "@/lib/red-packet-admin";
+import { getRedPacketZone, getRedPackets } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
 export default async function RedPacketsPage() {
-  const packets = await getRedPackets().catch((error) => {
-    console.error("Supabase red packets unavailable:", error);
-    return [];
-  });
+  const [packets, zone, isAdmin] = await Promise.all([
+    getRedPackets().catch((error) => {
+      console.error("Supabase red packets unavailable:", error);
+      return [];
+    }),
+    getRedPacketZone().catch((error) => {
+      console.error("Red packet zone unavailable:", error);
+      return null;
+    }),
+    isRedPacketAdmin(),
+  ]);
+  const latestAmount = packets.toSorted((a, b) => (b.contest?.start_time ?? "").localeCompare(a.contest?.start_time ?? ""))[0]?.amount_rmb ?? 111;
 
   return (
     <main>
@@ -26,9 +36,10 @@ export default async function RedPacketsPage() {
           </div>
         </nav>
       </header>
-      <section className="content home-content">
+      <section className="content home-content space-y-5">
         <SiteTabs />
-        <RedPacketsTable packets={packets} />
+        <RedPacketZonePanel zone={zone} defaultAmount={latestAmount} isAdmin={isAdmin} />
+        <RedPacketsTable packets={packets} isAdmin={isAdmin} />
       </section>
     </main>
   );

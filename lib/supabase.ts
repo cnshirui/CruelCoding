@@ -82,8 +82,12 @@ export type RedPacket = {
   member_name: string;
   user_id: string | null;
   amount_rmb: number;
+  paid_at: string | null;
   contest: { contest_number: number | null; title: string; start_time: string | null } | null;
 };
+
+export type RedPacketCandidate = { user_id: string; cruel_id: string; wechat_name: string | null; score: number; paid: boolean };
+export type RedPacketZone = { contest: { id: number; contest_number: number; title: string }; candidates: RedPacketCandidate[] } | null;
 
 function publicClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -95,7 +99,25 @@ function publicClient() {
 export async function getRedPackets(): Promise<RedPacket[]> {
   const { data, error } = await publicClient()
     .from("red_packets")
-    .select("id,contest_id,member_name,user_id,amount_rmb,contest:contests(contest_number,title,start_time)");
+    .select("id,contest_id,member_name,user_id,amount_rmb,paid_at,contest:contests(contest_number,title,start_time)");
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as RedPacket[];
+}
+
+// The zone for the most recent weekly contest that has already started.
+export async function getRedPacketZone(): Promise<RedPacketZone> {
+  const supabase = publicClient();
+  const { data: contest, error } = await supabase
+    .from("contests")
+    .select("id,contest_number,title")
+    .like("title_slug", "weekly-contest-%")
+    .lte("start_time", new Date().toISOString())
+    .order("start_time", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!contest) return null;
+  const { data, error: zoneError } = await supabase.rpc("red_packet_candidates", { target_contest_number: contest.contest_number });
+  if (zoneError) throw new Error(zoneError.message);
+  return { contest, candidates: (data ?? []) as RedPacketCandidate[] };
 }

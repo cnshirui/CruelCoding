@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
   type SortingState,
@@ -14,7 +15,10 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, Search } from "lucide-react";
 import type { RedPacket } from "@/lib/supabase";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { saveRedPackets } from "@/components/red-packet-zone";
 import { Input } from "@/components/ui/input";
 import { ListRefresh } from "@/components/list-refresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,7 +30,10 @@ function SortHeader({ label, column }: { label: string; column: { toggleSorting:
   return <Button variant="ghost" size="sm" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>{label} <ArrowUpDown /></Button>;
 }
 
-export function RedPacketsTable({ packets }: { packets: RedPacket[] }) {
+export function RedPacketsTable({ packets, isAdmin }: { packets: RedPacket[]; isAdmin: boolean }) {
+  const router = useRouter();
+  const [saving, setSaving] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "date", desc: true }]);
   const [globalFilter, setGlobalFilter] = useState("");
   const { columnOrder, columnVisibility, setColumnOrder, setColumnVisibility } = useColumnLayout("red-packets");
@@ -59,7 +66,34 @@ export function RedPacketsTable({ packets }: { packets: RedPacket[] }) {
       header: ({ column }) => <SortHeader label="金额" column={column} />,
       cell: ({ row }) => <span className="font-mono">{row.original.amount_rmb} 元</span>,
     },
-  ], []);
+    {
+      id: "paid",
+      accessorFn: (row) => Boolean(row.paid_at),
+      meta: { label: "已发" },
+      header: ({ column }) => <SortHeader label="已发" column={column} />,
+      cell: ({ row }) => {
+        const packet = row.original;
+        if (!isAdmin) return packet.paid_at ? <Badge variant="outline" className="bg-emerald-50 text-emerald-700">已发</Badge> : <span className="text-muted-foreground">未标记</span>;
+        return <Checkbox
+          checked={Boolean(packet.paid_at)}
+          disabled={saving === packet.id}
+          aria-label={`${packet.member_name} 已发红包`}
+          onCheckedChange={async (checked) => {
+            setSaving(packet.id);
+            setSaveError("");
+            try {
+              await saveRedPackets([{ contestId: packet.contest_id, userId: packet.user_id, memberName: packet.member_name, amount: packet.amount_rmb, paid: checked === true }]);
+              router.refresh();
+            } catch (error) {
+              setSaveError(error instanceof Error ? error.message : "保存失败。");
+            } finally {
+              setSaving(null);
+            }
+          }}
+        />;
+      },
+    },
+  ], [isAdmin, router, saving]);
 
   // TanStack Table returns a stateful instance whose methods are intentionally not memoizable.
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -81,7 +115,7 @@ export function RedPacketsTable({ packets }: { packets: RedPacket[] }) {
   return <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
     <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={globalFilter} onChange={(event) => setGlobalFilter(event.target.value)} placeholder="搜索群友或周赛…" className="pl-8" aria-label="搜索周赛红包" /></div>
-      <div className="flex items-center gap-2"><ListRefresh /><TableColumnSettings table={table} /><span className="whitespace-nowrap text-xs text-muted-foreground">{table.getFilteredRowModel().rows.length} 条</span></div>
+      <div className="flex items-center gap-2"><ListRefresh /><TableColumnSettings table={table} />{saveError ? <span role="alert" className="text-xs text-destructive">{saveError}</span> : null}<span className="whitespace-nowrap text-xs text-muted-foreground">{table.getFilteredRowModel().rows.length} 条</span></div>
     </div>
 
     <Table>
