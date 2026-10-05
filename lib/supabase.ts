@@ -58,10 +58,18 @@ export async function getLeaderboard(): Promise<{ members: LeaderboardMember[]; 
         .not("user_id", "is", null),
     ]);
     if (pocketsError) console.error("Supabase red pockets unavailable:", pocketsError.message);
-    const redPockets: RedPocketMarks = Object.fromEntries(
+    // The latest contest's calculated zone shows up without waiting for the owner; saved marks win.
+    const zone = await getRedPocketZone().catch((zoneError) => {
+      console.error("Red pocket zone unavailable:", zoneError);
+      return null;
+    });
+    const zoneMarks: RedPocketMarks = Object.fromEntries(
+      (zone?.candidates ?? []).map((member) => [`${zone?.contest.contest_number}:${member.user_id}`, member.paid ? "paid" : "owed"]),
+    );
+    const redPockets: RedPocketMarks = { ...zoneMarks, ...Object.fromEntries(
       ((pockets ?? []) as unknown as { user_id: string; paid_at: string | null; crying_poor: boolean; contest: { contest_number: number | null } | null }[])
         .map((pocket) => [`${pocket.contest?.contest_number}:${pocket.user_id}`, pocket.paid_at ? "paid" : pocket.crying_poor ? "crying" : "owed"]),
-    );
+    ) };
     const contestIds: ContestIds = Object.fromEntries(
       (contests ?? []).map((contest) => [contest.contest_number, contest.id]),
     );
