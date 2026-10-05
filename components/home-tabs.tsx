@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Leaderboard } from "@/components/scoreboard";
 import type { LeaderboardMember } from "@/lib/types";
-import type { ContestDates } from "@/lib/supabase";
+import type { ContestDates, RedPocketMarks } from "@/lib/supabase";
 import type { DailyProblem } from "@/lib/daily-problems";
 
 const groupRules = [
@@ -89,11 +89,11 @@ export function GroupRules() {
   );
 }
 
-export function HomeTabs({ members, contestDates, canRefresh = false }: { members: LeaderboardMember[]; contestDates: ContestDates; canRefresh?: boolean }) {
+export function HomeTabs({ members, contestDates, redPockets = {}, canRefresh = false }: { members: LeaderboardMember[]; contestDates: ContestDates; redPockets?: RedPocketMarks; canRefresh?: boolean }) {
   return (
     <>
         <div>
-          <Leaderboard members={members} contestDates={contestDates} canRefresh={canRefresh} />
+          <Leaderboard members={members} contestDates={contestDates} redPockets={redPockets} canRefresh={canRefresh} />
         </div>
     </>
   );

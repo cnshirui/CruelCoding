@@ -19,7 +19,7 @@ async function isSignedIn() {
 }
 
 export default async function RanksPage() {
-  const { members, contestDates } = await getLeaderboard();
+  const { members, contestDates, redPockets } = await getLeaderboard();
   const canRefresh = await isSignedIn();
 
   return (
@@ -35,7 +35,7 @@ export default async function RanksPage() {
       </header>
       <section className="content home-content" id="top">
         <SiteTabs />
-        <HomeTabs members={members} contestDates={contestDates} canRefresh={canRefresh} />
+        <HomeTabs members={members} contestDates={contestDates} redPockets={redPockets} canRefresh={canRefresh} />
       </section>
     </main>
   );

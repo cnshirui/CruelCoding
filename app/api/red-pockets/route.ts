@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
-import { isRedPacketAdmin } from "@/lib/red-packet-admin";
+import { isRedPocketAdmin } from "@/lib/red-pocket-admin";
 
 export const runtime = "nodejs";
 
@@ -18,10 +18,10 @@ function isRow(value: unknown): value is Row {
     && (row.paid === undefined || typeof row.paid === "boolean");
 }
 
-// Records who is in a contest's red-packet zone. `paid` toggles the sent mark; leaving it out
+// Records who is in a contest's red-pocket zone. `paid` toggles the sent mark; leaving it out
 // only makes sure the row exists, so saving the zone never clears a mark already set.
 export async function POST(request: Request) {
-  if (!(await isRedPacketAdmin())) return NextResponse.json({ error: "只有群主可以标记红包。" }, { status: 403 });
+  if (!(await isRedPocketAdmin())) return NextResponse.json({ error: "只有群主可以标记红包。" }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   const rows: unknown[] = Array.isArray(body?.rows) ? body.rows : [];
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
   for (const row of rows as Row[]) {
     const memberName = row.memberName.trim();
-    const match = database.from("red_packets").select("id").eq("contest_id", row.contestId);
+    const match = database.from("red_pockets").select("id").eq("contest_id", row.contestId);
     const { data: existing, error: findError } = await (row.userId
       ? match.or(`user_id.eq.${row.userId},member_name.eq."${memberName.replaceAll('"', '""')}"`)
       : match.eq("member_name", memberName)
@@ -43,11 +43,11 @@ export async function POST(request: Request) {
 
     const paid = row.paid === undefined ? {} : { paid_at: row.paid ? new Date().toISOString() : null };
     const { error } = existing
-      ? await database.from("red_packets").update({ user_id: row.userId, amount_rmb: row.amount, ...paid }).eq("id", existing.id)
-      : await database.from("red_packets").insert({ contest_id: row.contestId, user_id: row.userId, member_name: memberName, amount_rmb: row.amount, ...paid });
+      ? await database.from("red_pockets").update({ user_id: row.userId, amount_rmb: row.amount, ...paid }).eq("id", existing.id)
+      : await database.from("red_pockets").insert({ contest_id: row.contestId, user_id: row.userId, member_name: memberName, amount_rmb: row.amount, ...paid });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  revalidatePath("/red-packets");
+  revalidatePath("/red-pockets");
   return NextResponse.json({ ok: true });
 }

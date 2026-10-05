@@ -14,10 +14,10 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { ArrowUpDown, Search } from "lucide-react";
-import type { RedPacket } from "@/lib/supabase";
+import type { RedPocket } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RedPacketStatus, saveRedPackets } from "@/components/red-packet-zone";
+import { RedPocketStatus, saveRedPockets } from "@/components/red-pocket-zone";
 import { Input } from "@/components/ui/input";
 import { ListRefresh } from "@/components/list-refresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,15 +29,15 @@ function SortHeader({ label, column }: { label: string; column: { toggleSorting:
   return <Button variant="ghost" size="sm" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>{label} <ArrowUpDown /></Button>;
 }
 
-export function RedPacketsTable({ packets, isAdmin }: { packets: RedPacket[]; isAdmin: boolean }) {
+export function RedPocketsTable({ pockets, isAdmin }: { pockets: RedPocket[]; isAdmin: boolean }) {
   const router = useRouter();
   const [saving, setSaving] = useState<number | null>(null);
   const [saveError, setSaveError] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "date", desc: true }]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const { columnOrder, columnVisibility, setColumnOrder, setColumnVisibility } = useColumnLayout("red-packets");
+  const { columnOrder, columnVisibility, setColumnOrder, setColumnVisibility } = useColumnLayout("red-pockets");
 
-  const columns = useMemo<ColumnDef<RedPacket>[]>(() => [
+  const columns = useMemo<ColumnDef<RedPocket>[]>(() => [
     {
       id: "date",
       accessorFn: (row) => row.contest?.start_time?.slice(0, 10) ?? "",
@@ -71,17 +71,17 @@ export function RedPacketsTable({ packets, isAdmin }: { packets: RedPacket[]; is
       meta: { label: "状态" },
       header: ({ column }) => <SortHeader label="状态" column={column} />,
       cell: ({ row }) => {
-        const packet = row.original;
-        if (!isAdmin) return <RedPacketStatus paid={Boolean(packet.paid_at)} showLabel />;
+        const pocket = row.original;
+        if (!isAdmin) return <RedPocketStatus paid={Boolean(pocket.paid_at)} showLabel />;
         return <div className="flex items-center gap-2"><Checkbox
-          checked={Boolean(packet.paid_at)}
-          disabled={saving === packet.id}
-          aria-label={`${packet.member_name} 已发红包`}
+          checked={Boolean(pocket.paid_at)}
+          disabled={saving === pocket.id}
+          aria-label={`${pocket.member_name} 已发红包`}
           onCheckedChange={async (checked) => {
-            setSaving(packet.id);
+            setSaving(pocket.id);
             setSaveError("");
             try {
-              await saveRedPackets([{ contestId: packet.contest_id, userId: packet.user_id, memberName: packet.member_name, amount: packet.amount_rmb, paid: checked === true }]);
+              await saveRedPockets([{ contestId: pocket.contest_id, userId: pocket.user_id, memberName: pocket.member_name, amount: pocket.amount_rmb, paid: checked === true }]);
               router.refresh();
             } catch (error) {
               setSaveError(error instanceof Error ? error.message : "保存失败。");
@@ -89,7 +89,7 @@ export function RedPacketsTable({ packets, isAdmin }: { packets: RedPacket[]; is
               setSaving(null);
             }
           }}
-        /><RedPacketStatus paid={Boolean(packet.paid_at)} showLabel /></div>;
+        /><RedPocketStatus paid={Boolean(pocket.paid_at)} showLabel /></div>;
       },
     },
   ], [isAdmin, router, saving]);
@@ -97,7 +97,7 @@ export function RedPacketsTable({ packets, isAdmin }: { packets: RedPacket[]; is
   // TanStack Table returns a stateful instance whose methods are intentionally not memoizable.
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: packets,
+    data: pockets,
     columns,
     state: { sorting, globalFilter, columnOrder, columnVisibility },
     onSortingChange: setSorting,

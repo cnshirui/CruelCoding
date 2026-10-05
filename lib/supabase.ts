@@ -4,6 +4,8 @@ import { createClient } from "@supabase/supabase-js";
 
 type LeaderboardSource = "supabase" | "snapshot";
 export type ContestDates = Record<number, string>;
+// "<contest_number>:<user_id>" → whether that red pocket was marked as sent.
+export type RedPocketMarks = Record<string, boolean>;
 
 const memberColumns = "user_id,cruel_id,cruel_date,exit_date,subgroup,days,rating,score,contests,wechat_name,wechat_id,referral,status";
 const MEMBER_PAGE_SIZE = 500;
@@ -33,12 +35,12 @@ export async function getCommunityMembers(): Promise<{ members: LeaderboardMembe
   return { members: (snapshot as LeaderboardMember[]).map((member) => ({ ...member, status: "active" })), source: "snapshot" };
 }
 
-export async function getLeaderboard(): Promise<{ members: LeaderboardMember[]; source: LeaderboardSource; contestDates: ContestDates }> {
+export async function getLeaderboard(): Promise<{ members: LeaderboardMember[]; source: LeaderboardSource; contestDates: ContestDates; redPockets: RedPocketMarks }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (url && key) {
     const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-    const [{ data, error }, { data: contests, error: contestsError }] = await Promise.all([
+    const [{ data, error }, { data: contests, error: contestsError }, { data: pockets, error: pocketsError }] = await Promise.all([
       supabase
         .from("current_scoreboard")
         .select("user_id,cruel_id,cruel_date,subgroup,days,rating,score,contests,wechat_name,wechat_id,referral"),
@@ -47,17 +49,26 @@ export async function getLeaderboard(): Promise<{ members: LeaderboardMember[]; 
         .select("contest_number,start_time")
         .not("contest_number", "is", null)
         .not("start_time", "is", null),
+      supabase
+        .from("red_pockets")
+        .select("user_id,paid_at,contest:contests(contest_number)")
+        .not("user_id", "is", null),
     ]);
+    if (pocketsError) console.error("Supabase red pockets unavailable:", pocketsError.message);
+    const redPockets: RedPocketMarks = Object.fromEntries(
+      ((pockets ?? []) as unknown as { user_id: string; paid_at: string | null; contest: { contest_number: number | null } | null }[])
+        .map((pocket) => [`${pocket.contest?.contest_number}:${pocket.user_id}`, Boolean(pocket.paid_at)]),
+    );
     const contestDates = Object.fromEntries(
       (contests ?? []).map((contest) => [contest.contest_number, contest.start_time]),
     ) as ContestDates;
     if (!error && data?.length) {
       if (contestsError) console.error("Supabase contest dates unavailable:", contestsError.message);
-      return { members: data as LeaderboardMember[], source: "supabase", contestDates };
+      return { members: data as LeaderboardMember[], source: "supabase", contestDates, redPockets };
     }
     if (error) console.error("Supabase leaderboard unavailable; using bundled snapshot:", error.message);
   }
-  return { members: snapshot as LeaderboardMember[], source: "snapshot", contestDates: {} };
+  return { members: snapshot as LeaderboardMember[], source: "snapshot", contestDates: {}, redPockets: {} };
 }
 
 export async function getUserDetail(userId: string): Promise<LeaderboardMember | null> {
@@ -76,7 +87,7 @@ export async function getUserDetail(userId: string): Promise<LeaderboardMember |
   return (snapshot as LeaderboardMember[]).find((member) => member.user_id === userId) ?? null;
 }
 
-export type RedPacket = {
+export type RedPocket = {
   id: number;
   contest_id: number;
   member_name: string;
@@ -86,8 +97,8 @@ export type RedPacket = {
   contest: { contest_number: number | null; title: string; start_time: string | null } | null;
 };
 
-export type RedPacketCandidate = { user_id: string; cruel_id: string; wechat_name: string | null; score: number; paid: boolean };
-export type RedPacketZone = { contest: { id: number; contest_number: number; title: string }; candidates: RedPacketCandidate[] } | null;
+export type RedPocketCandidate = { user_id: string; cruel_id: string; wechat_name: string | null; score: number; paid: boolean };
+export type RedPocketZone = { contest: { id: number; contest_number: number; title: string }; candidates: RedPocketCandidate[] } | null;
 
 function publicClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -96,16 +107,16 @@ function publicClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-export async function getRedPackets(): Promise<RedPacket[]> {
+export async function getRedPockets(): Promise<RedPocket[]> {
   const { data, error } = await publicClient()
-    .from("red_packets")
+    .from("red_pockets")
     .select("id,contest_id,member_name,user_id,amount_rmb,paid_at,contest:contests(contest_number,title,start_time)");
   if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as RedPacket[];
+  return (data ?? []) as unknown as RedPocket[];
 }
 
 // The zone for the most recent weekly contest that has already started.
-export async function getRedPacketZone(): Promise<RedPacketZone> {
+export async function getRedPocketZone(): Promise<RedPocketZone> {
   const supabase = publicClient();
   const { data: contest, error } = await supabase
     .from("contests")
@@ -117,7 +128,7 @@ export async function getRedPacketZone(): Promise<RedPacketZone> {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!contest) return null;
-  const { data, error: zoneError } = await supabase.rpc("red_packet_candidates", { target_contest_number: contest.contest_number });
+  const { data, error: zoneError } = await supabase.rpc("red_pocket_candidates", { target_contest_number: contest.contest_number });
   if (zoneError) throw new Error(zoneError.message);
-  return { contest, candidates: (data ?? []) as RedPacketCandidate[] };
+  return { contest, candidates: (data ?? []) as RedPocketCandidate[] };
 }
