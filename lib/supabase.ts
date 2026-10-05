@@ -75,3 +75,27 @@ export async function getUserDetail(userId: string): Promise<LeaderboardMember |
   }
   return (snapshot as LeaderboardMember[]).find((member) => member.user_id === userId) ?? null;
 }
+
+export type RedPacket = {
+  id: number;
+  contest_id: number;
+  member_name: string;
+  user_id: string | null;
+  amount_rmb: number;
+  contest: { contest_number: number | null; title: string; start_time: string | null } | null;
+};
+
+function publicClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("Supabase is not configured.");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+export async function getRedPackets(): Promise<RedPacket[]> {
+  const { data, error } = await publicClient()
+    .from("red_packets")
+    .select("id,contest_id,member_name,user_id,amount_rmb,contest:contests(contest_number,title,start_time)");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as RedPacket[];
+}

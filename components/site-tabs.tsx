@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/", label: "排行榜", matches: (path: string) => path === "/" || path.startsWith("/ranks") },
   { href: "/checkins", label: "每日打卡", matches: (path: string) => path.startsWith("/checkins") },
+  { href: "/red-packets", label: "周赛红包", matches: (path: string) => path.startsWith("/red-packets") },
   { href: "/users", label: "残酷群友", matches: (path: string) => path.startsWith("/users") },
   { href: "/rules", label: "群规", matches: (path: string) => path.startsWith("/rules") },
 ] as const;
