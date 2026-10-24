@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
     let query = database()
       .from("daily_checkins")
       .select("id,cruel_id,checkin_date,note,created_at,updated_at,owner_hash")
+      .not("cruel_id", "is", null) // AI-group rows live in the same table but belong to /ai-agents
       .order("created_at", { ascending: true });
     if (date) query = query.eq("checkin_date", date);
     if (cruelId) query = query.eq("cruel_id", cruelId);
