@@ -18,7 +18,7 @@ Import the repository in Vercel and add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC
 
 ## Daily check-in REST API
 
-Daily check-ins are stored in `public.daily_checkins`; 残酷AI群 study notes share the table (rows with `user_id` + `course_code`, see `/ai-agents`). Apply the migrations before using the API. Writes are performed server-side, and an HttpOnly ownership cookie limits update/delete operations to the browser that created the record.
+Daily check-ins are stored in `public.checkins`; 残酷AI群 study notes share the table (rows with `user_id` + `course_code`, see `/ai-agents`). Apply the migrations before using the API. Writes are performed server-side, and an HttpOnly ownership cookie limits update/delete operations to the browser that created the record.
 
 ```text
 GET    /api/checkins?date=2026-08-23&cruel_id=example

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const owner = ownerFor(request);
     let query = database()
-      .from("daily_checkins")
+      .from("checkins")
       .select("id,cruel_id,checkin_date,note,created_at,updated_at,owner_hash")
       .not("cruel_id", "is", null) // AI-group rows live in the same table but belong to /ai-agents
       .order("created_at", { ascending: true });
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (!cruelId) return errorResponse("cruel_id is required", 400);
     const owner = ownerFor(request);
     const record = { cruel_id: cruelId, owner_hash: owner.hash, ...(date ? { checkin_date: date } : {}), ...(note !== undefined ? { note } : {}) };
-    const { data, error } = await database().from("daily_checkins").insert(record)
+    const { data, error } = await database().from("checkins").insert(record)
       .select("id,cruel_id,checkin_date,note,created_at,updated_at").single();
     if (error?.code === "23505") return errorResponse("This member has already checked in for that date", 409);
     if (error?.code === "23503") return errorResponse("Unknown CruelID", 404);
@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest) {
     const { cruelId, date, note } = parseInput(body);
     const changes = { ...(cruelId ? { cruel_id: cruelId } : {}), ...(date ? { checkin_date: date } : {}), ...(note !== undefined ? { note } : {}), updated_at: new Date().toISOString() };
     const owner = ownerFor(request);
-    const { data, error } = await database().from("daily_checkins").update(changes)
+    const { data, error } = await database().from("checkins").update(changes)
       .eq("id", id).eq("owner_hash", owner.hash)
       .select("id,cruel_id,checkin_date,note,created_at,updated_at").maybeSingle();
     if (error?.code === "23505") return errorResponse("This member has already checked in for that date", 409);
@@ -114,7 +114,7 @@ export async function DELETE(request: NextRequest) {
     const id = Number(request.nextUrl.searchParams.get("id"));
     if (!Number.isSafeInteger(id) || id <= 0) return errorResponse("A valid id is required", 400);
     const owner = ownerFor(request);
-    const { data, error } = await database().from("daily_checkins").delete()
+    const { data, error } = await database().from("checkins").delete()
       .eq("id", id).eq("owner_hash", owner.hash).select("id").maybeSingle();
     if (error) return errorResponse(error.message, 503);
     if (!data) return errorResponse("Check-in not found or not owned by this browser", 404);

@@ -30,7 +30,7 @@ export async function saveCheckin(_: ActionState, formData: FormData): Promise<A
   if (!courseCodes.includes(course)) return fail("请选择课程。");
   if (note.length < 50) return fail(`笔记至少 50 字，当前 ${note.length} 字。`);
   if (note.length > 2000) return fail("笔记最多 2000 字。");
-  const { error } = await supabase.from("daily_checkins")
+  const { error } = await supabase.from("checkins")
     .upsert({ user_id: user.id, checkin_date: date, course_code: course, note }, { onConflict: "user_id,checkin_date" });
   if (error) return fail(error.message);
   refresh();
@@ -45,7 +45,7 @@ export async function addComment(_: ActionState, formData: FormData): Promise<Ac
   if (!Number.isSafeInteger(checkinId) || checkinId <= 0) return fail("打卡记录不存在。");
   if (!body) return fail("评论不能为空。");
   if (body.length > 1000) return fail("评论最多 1000 字。");
-  const { error } = await supabase.from("daily_checkin_comments").insert({ checkin_id: checkinId, user_id: user.id, body });
+  const { error } = await supabase.from("checkin_comments").insert({ checkin_id: checkinId, user_id: user.id, body });
   if (error) return fail(error.message);
   refresh();
   return { ok: true, message: "评论已发布。" };

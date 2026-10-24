@@ -25,7 +25,7 @@ export function beijingDateKey(offsetDays = 0) {
 }
 
 const memberColumns = "user_id,display_name,status,applied_at,reviewed_at";
-const checkinColumns = "id,user_id,checkin_date,course_code,note,created_at,updated_at,member:ai_group_members(display_name),comments:daily_checkin_comments(count)";
+const checkinColumns = "id,user_id,checkin_date,course_code,note,created_at,updated_at,member:ai_group_members(display_name),comments:checkin_comments(count)";
 type RawCheckin = Omit<AiCheckin, "display_name" | "comment_count"> & { member: { display_name: string } | null; comments: { count: number }[] | null };
 const shapeCheckin = ({ member, comments, ...checkin }: RawCheckin): AiCheckin => ({ ...checkin, display_name: member?.display_name ?? "成员", comment_count: comments?.[0]?.count ?? 0 });
 
@@ -47,7 +47,7 @@ export async function getAiMembers(): Promise<AiMember[]> {
 // ponytail: latest 500 rows per view; add server paging when the group outgrows it.
 export async function getAiCheckins(filters: AiCheckinFilters = {}, limit = 500): Promise<AiCheckin[]> {
   const supabase = await createSupabaseServerClient();
-  let query = supabase.from("daily_checkins").select(checkinColumns).not("user_id", "is", null).order("checkin_date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+  let query = supabase.from("checkins").select(checkinColumns).not("user_id", "is", null).order("checkin_date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
   if (filters.course) query = query.eq("course_code", filters.course);
   if (filters.date) query = query.eq("checkin_date", filters.date);
   if (filters.user) query = query.eq("user_id", filters.user);
@@ -59,8 +59,8 @@ export async function getAiCheckins(filters: AiCheckinFilters = {}, limit = 500)
 export async function getAiCheckin(id: number): Promise<{ checkin: AiCheckin; comments: AiComment[] } | null> {
   const supabase = await createSupabaseServerClient();
   const [{ data: checkin }, { data: comments }] = await Promise.all([
-    supabase.from("daily_checkins").select(checkinColumns).eq("id", id).not("user_id", "is", null).maybeSingle(),
-    supabase.from("daily_checkin_comments").select("id,user_id,body,created_at,member:ai_group_members(display_name)").eq("checkin_id", id).order("created_at", { ascending: true }),
+    supabase.from("checkins").select(checkinColumns).eq("id", id).not("user_id", "is", null).maybeSingle(),
+    supabase.from("checkin_comments").select("id,user_id,body,created_at,member:ai_group_members(display_name)").eq("checkin_id", id).order("created_at", { ascending: true }),
   ]);
   if (!checkin) return null;
   type RawComment = Omit<AiComment, "display_name"> & { member: { display_name: string } | null };
@@ -74,7 +74,7 @@ export async function getAiStats(): Promise<AiMemberStats[]> {
   const supabase = await createSupabaseServerClient();
   const [members, { data, error }] = await Promise.all([
     getAiMembers(),
-    supabase.from("daily_checkins").select("user_id,checkin_date,course_code").not("user_id", "is", null).order("checkin_date", { ascending: false }).limit(10_000),
+    supabase.from("checkins").select("user_id,checkin_date,course_code").not("user_id", "is", null).order("checkin_date", { ascending: false }).limit(10_000),
   ]);
   if (error) throw new Error(error.message);
   const byUser = new Map<string, { dates: Set<string>; last_date: string | null; last_course: string | null }>();
