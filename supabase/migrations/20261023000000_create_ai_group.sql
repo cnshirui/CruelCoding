@@ -24,7 +24,7 @@ alter table public.daily_checkins
   -- A row belongs to exactly one group: LeetCode (cruel_id + cookie owner) or AI (user + course + 50-char note).
   add constraint daily_checkins_group_shape check (
     (cruel_id is not null and owner_hash is not null and user_id is null and course_code is null)
-    or (user_id is not null and course_code is not null and cruel_id is null and owner_hash is null and char_length(note) >= 50)
+    or (user_id is not null and course_code is not null and cruel_id is null and owner_hash is null and note is not null and char_length(note) >= 50)
   ),
   -- Enforced here too, so a member calling Supabase directly cannot back-fill the future.
   add constraint daily_checkins_not_in_future check (user_id is null or checkin_date <= (now() at time zone 'Asia/Shanghai')::date);
@@ -61,9 +61,16 @@ create trigger daily_checkins_touch_updated_at before update on public.daily_che
 alter table public.ai_group_members enable row level security;
 alter table public.daily_checkin_comments enable row level security;
 revoke all on table public.ai_group_members, public.daily_checkin_comments from anon, authenticated;
--- daily_checkins already grants select to anon/authenticated (public read). Column grants keep
--- clients off cruel_id/owner_hash/created_at/updated_at; upsert also sets user_id on conflict,
--- and RLS pins it to auth.uid().
+-- LeetCode rows stay public; AI-group notes are for logged-in users only, and anon never sees
+-- owner_hash or the AI columns. Column grants keep clients off cruel_id/owner_hash/created_at/
+-- updated_at; upsert also sets user_id on conflict, and RLS pins it to auth.uid().
+drop policy "Daily check-ins are publicly readable" on public.daily_checkins;
+create policy "LeetCode check-ins are publicly readable"
+  on public.daily_checkins for select to anon, authenticated using (cruel_id is not null);
+create policy "AI check-ins are visible to logged-in users"
+  on public.daily_checkins for select to authenticated using (user_id is not null);
+revoke select on table public.daily_checkins from anon;
+grant select (id, cruel_id, checkin_date, note, created_at, updated_at) on table public.daily_checkins to anon;
 grant insert (user_id, checkin_date, course_code, note), update (user_id, checkin_date, course_code, note), delete on table public.daily_checkins to authenticated;
 grant select on table public.ai_group_members to authenticated;
 grant insert (user_id, display_name) on table public.ai_group_members to authenticated;
