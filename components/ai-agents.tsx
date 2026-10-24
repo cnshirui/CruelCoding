@@ -41,7 +41,7 @@ export function AiAgents() {
         <p>每日记录一点 AI 学习与实践，一起把 Stanford、Harvard、CMU 的 Agent 课程啃完。</p>
         <div className="rules-notice"><strong>群规</strong><ol className="ai-rule-list">{aiGroupRules.map(([title, text]) => <li key={title}><strong>{title}</strong>{text}</li>)}</ol></div>
         <nav className="course-index" aria-label="课程索引">{schools.map((school) => <a href={`#${school.toLowerCase()}`} key={school}>{school} ↓</a>)}</nav>
-        <Link href="/rules">查看刷题群群规 →</Link>
+        <div className="course-index"><Link href="/ai-agents/checkins">去打卡 →</Link><Link href="/ai-agents/stats">打卡统计 →</Link><Link href="/rules">刷题群群规 →</Link></div>
       </aside>
       <div className="rules-content">
         <div className="rules-meta"><span>Agent 课程</span><span>{agentCourses.length} 门</span></div>
