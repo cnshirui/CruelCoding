@@ -19,7 +19,9 @@ create table public.ai_checkins (
   note text not null check (char_length(note) between 50 and 2000),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (user_id, checkin_date)
+  unique (user_id, checkin_date),
+  -- Enforced here too, so a member calling Supabase directly cannot back-fill the future.
+  constraint ai_checkins_not_in_future check (checkin_date <= (now() at time zone 'Asia/Shanghai')::date)
 );
 create index ai_checkins_date_idx on public.ai_checkins (checkin_date desc, created_at asc);
 create index ai_checkins_course_idx on public.ai_checkins (course_code, checkin_date desc);
@@ -44,9 +46,24 @@ alter table public.ai_group_members enable row level security;
 alter table public.ai_checkins enable row level security;
 alter table public.ai_checkin_comments enable row level security;
 revoke all on table public.ai_group_members, public.ai_checkins, public.ai_checkin_comments from anon, authenticated;
-grant select, insert on table public.ai_group_members to authenticated;
-grant select, insert, update, delete on table public.ai_checkins to authenticated;
-grant select, insert, delete on table public.ai_checkin_comments to authenticated;
+grant select on table public.ai_group_members to authenticated;
+-- Column grants keep clients off created_at/updated_at; triggers below maintain updated_at.
+grant select, delete on table public.ai_checkins to authenticated;
+-- upsert sets user_id on conflict too; RLS still pins it to auth.uid().
+grant insert (user_id, checkin_date, course_code, note), update (user_id, checkin_date, course_code, note) on table public.ai_checkins to authenticated;
+grant select, delete on table public.ai_checkin_comments to authenticated;
+grant insert (checkin_id, user_id, body) on table public.ai_checkin_comments to authenticated;
+grant insert (user_id, display_name) on table public.ai_group_members to authenticated;
+
+create or replace function public.ai_touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+create trigger ai_checkins_touch_updated_at before update on public.ai_checkins
+  for each row execute function public.ai_touch_updated_at();
 
 create policy "AI group members are visible to logged-in users"
   on public.ai_group_members for select to authenticated using (true);

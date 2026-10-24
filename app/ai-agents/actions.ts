@@ -31,7 +31,7 @@ export async function saveCheckin(_: ActionState, formData: FormData): Promise<A
   if (note.length < 50) return fail(`笔记至少 50 字，当前 ${note.length} 字。`);
   if (note.length > 2000) return fail("笔记最多 2000 字。");
   const { error } = await supabase.from("ai_checkins")
-    .upsert({ user_id: user.id, checkin_date: date, course_code: course, note, updated_at: new Date().toISOString() }, { onConflict: "user_id,checkin_date" });
+    .upsert({ user_id: user.id, checkin_date: date, course_code: course, note }, { onConflict: "user_id,checkin_date" });
   if (error) return fail(error.message);
   refresh();
   return { ok: true, message: `${date} 打卡成功。` };
