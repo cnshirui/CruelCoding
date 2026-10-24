@@ -4,7 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   // The contest ranking lookup only redirects to public LeetCode pages, and the public leaderboard links to it.
-  const isPublicPage = pathname === "/" || pathname === "/ranks" || pathname === "/api/contest-ranking";
+  // Static content pages (group rules, AI agent course list) carry no member data and stay public too.
+  const isPublicPage = pathname === "/" || pathname === "/ranks" || pathname === "/api/contest-ranking" || pathname === "/rules" || pathname === "/ai-agents";
   const isAuthEndpoint = pathname === "/login" || pathname.startsWith("/auth/");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
