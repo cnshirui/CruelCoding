@@ -9,6 +9,7 @@ const tabs = [
   { href: "/red-pockets", label: "周赛红包", matches: (path: string) => path.startsWith("/red-pockets") },
   { href: "/users", label: "残酷群友", matches: (path: string) => path.startsWith("/users") },
   { href: "/rules", label: "群规", matches: (path: string) => path.startsWith("/rules") },
+  { href: "/ai-agents", label: "残酷AI群", matches: (path: string) => path.startsWith("/ai-agents") },
 ] as const;
 
 export function SiteTabs() {
