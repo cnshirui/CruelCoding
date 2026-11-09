@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
   const columns = "id,email,name,role,google_sub";
   const { data: bySub } = await db.from("app_users").select(columns).eq("google_sub", claims.sub).maybeSingle();
   const { data: byEmail } = bySub ? { data: null } : await db.from("app_users").select(columns).eq("email", email).maybeSingle();
+  // Link by email only to an account no Google identity has claimed yet.
+  if (byEmail?.google_sub && byEmail.google_sub !== claims.sub) return fail(request, "This email is linked to a different Google account.");
   const existing = bySub ?? byEmail;
   const name = existing?.name || claims.name?.trim() || email.split("@")[0];
   const { data: user, error } = existing

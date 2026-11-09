@@ -9,7 +9,8 @@ export const SESSION_COOKIE = "cc_session";
 export const OAUTH_COOKIE = "cc_oauth";
 
 export function safeNext(value: string | null | undefined) {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/account";
+  // Same-origin paths only: no "//host", no "/\\host" (browsers treat \ as /), no whitespace/control chars.
+  return value && /^\/(?![/\\])[^\\\s]*$/.test(value) ? value : "/account";
 }
 const SESSION_DAYS = 30;
 
@@ -23,8 +24,8 @@ function secret() {
 
 const sign = (payload: string) => createHmac("sha256", secret()).update(payload).digest("base64url");
 
-// ponytail: stateless signed cookie; role/name changes apply at next login and there is no
-// server-side revocation. Add a sessions table if forced logout is ever needed.
+// ponytail: stateless signed cookie with no server-side revocation (admin checks re-read the
+// role from app_users). Add a sessions table if forced logout is ever needed.
 export function createSessionToken(user: SessionUser) {
   const payload = Buffer.from(JSON.stringify({ ...user, exp: Date.now() + SESSION_DAYS * 86_400_000 })).toString("base64url");
   return `${payload}.${sign(payload)}`;
@@ -58,10 +59,11 @@ export function adminDb() {
 }
 
 // The group owner(s): RED_POCKET_ADMIN_EMAILS=a@x.com,b@y.com, plus any app_users.role = "sys_admin".
-export async function isAdmin() {
+// Role is read from the database, not the cookie, so revoking it takes effect immediately.
+export const isAdmin = cache(async () => {
   const session = await getSession();
   if (!session) return false;
-  if (session.role === "sys_admin") return true;
   const admins = (process.env.RED_POCKET_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-  return admins.includes(session.email);
-}
+  const { data } = await adminDb().from("app_users").select("email,role").eq("id", session.id).maybeSingle();
+  return Boolean(data && (data.role === "sys_admin" || admins.includes(data.email)));
+});
