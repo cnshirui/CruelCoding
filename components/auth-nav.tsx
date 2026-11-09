@@ -24,7 +24,6 @@ export async function AuthNav() {
         <Link className="nav-link" href="/account">{username}</Link>
         <form action={logout}><button className="nav-button" type="submit">退出登录</button></form>
       </> : <>
-        <Link className="nav-link" href="/login?mode=signup">Sign up</Link>
         <Link className="nav-button" href="/login">Log in</Link>
       </>}
     </div>

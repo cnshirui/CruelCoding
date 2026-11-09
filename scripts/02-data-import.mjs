@@ -228,6 +228,28 @@ const supabase = createClient(supabaseUrl, secretKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+// Contest start times come from LeetCode, not WisdomPeak; without this the RPC creates rows with a null start_time.
+const contestResponse = await fetch("https://leetcode.com/graphql/", {
+  method: "POST",
+  headers: { "content-type": "application/json", "user-agent": "cruel-coding-refresh/1.0", "x-operation-name": "contestV2HistoryContests" },
+  body: JSON.stringify({
+    query: "query contestV2HistoryContests($skip: Int!, $limit: Int!) { contestV2HistoryContests(skip: $skip, limit: $limit) { contests { titleSlug title startTime cardImg } } }",
+    variables: { limit: 20, skip: 0 },
+    operationName: "contestV2HistoryContests",
+  }),
+});
+if (!contestResponse.ok) throw new Error(`LeetCode contest history failed (${contestResponse.status})`);
+const leetCodeContests = ((await contestResponse.json()).data?.contestV2HistoryContests?.contests ?? []).flatMap((contest) => {
+  const match = contest.titleSlug.match(/^weekly-contest-(\d+)$/);
+  if (!match || !Number.isFinite(contest.startTime)) return [];
+  const startTime = new Date(contest.startTime * 1_000).toISOString();
+  return [{ contest_number: Number(match[1]), title: contest.title, title_slug: contest.titleSlug, start_time: startTime, origin_start_time: startTime, card_img: contest.cardImg }];
+});
+if (!leetCodeContests.length) throw new Error("LeetCode contest history returned no weekly contests");
+const { error: contestError } = await supabase.from("contests").upsert(leetCodeContests, { onConflict: "contest_number" });
+if (contestError) throw contestError;
+console.log(`Upserted ${leetCodeContests.length} LeetCode contest dates.`);
+
 const authImport = await importAuthUsers(supabase, USERS_CSV_PATH);
 console.log(`Auth import complete: ${authImport.created} created, ${authImport.updated} updated.`);
 
