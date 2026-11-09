@@ -46,7 +46,7 @@ export async function POST() {
       revalidatePath("/");
       return NextResponse.json({ ...result, retryAfter: COOLDOWN_SECONDS, message: result.changed
         ? `Leaderboard updated; ${result.contestCount} LeetCode contest times synced.`
-        : "WisdomPeak sources are unchanged; nothing was imported." });
+        : `WisdomPeak sources are unchanged; ${result.contestCount} LeetCode contest times synced.` });
     } catch (refreshError) {
       await database.rpc("release_leaderboard_refresh", { previous_refreshed_at: claim.previous_refreshed_at ?? null });
       throw refreshError;

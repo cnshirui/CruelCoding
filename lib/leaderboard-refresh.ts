@@ -171,17 +171,20 @@ export async function refreshLeaderboard() {
   const combinedHash = sha256(JSON.stringify(sourceHashes));
   const supabase = createClient(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-  // WisdomPeak only republishes the scoreboard after a contest is scored. When the four source
-  // files still hash to a snapshot we already hold, nothing upstream changed, so this returns
-  // before any write — no contest upsert, no xlsx parse, no snapshot replace.
-  const { data: existing, error: lookupError } = await supabase.from("scoreboard_snapshots").select("id").eq("combined_hash", combinedHash).maybeSingle();
-  if (lookupError) throw lookupError;
-  if (existing) return { changed: false, snapshotId: existing.id, memberCount: null, contestCount: null };
-
-  const [leetCodeContests, { members, latestContest }] = await Promise.all([fetchLeetCodeContests(), parseScoreboard(files)]);
+  // Contest dates come from LeetCode and must be upserted even when the WisdomPeak files are
+  // unchanged, or a contest first created by another import path keeps a null start_time.
+  const leetCodeContests = await fetchLeetCodeContests();
   if (!leetCodeContests.length) throw new Error("LeetCode contest history returned no weekly contests");
   const { error: contestError } = await supabase.from("contests").upsert(leetCodeContests, { onConflict: "contest_number" });
   if (contestError) throw contestError;
+
+  // WisdomPeak only republishes the scoreboard after a contest is scored. When the four source
+  // files still hash to a snapshot we already hold, skip the xlsx parse and snapshot replace.
+  const { data: existing, error: lookupError } = await supabase.from("scoreboard_snapshots").select("id").eq("combined_hash", combinedHash).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing) return { changed: false, snapshotId: existing.id, memberCount: null, contestCount: leetCodeContests.length };
+
+  const { members, latestContest } = await parseScoreboard(files);
 
   const payload = { combined_hash: combinedHash, source_hashes: sourceHashes, source_urls: SOURCES, latest_contest: latestContest, members };
   const { data: snapshotId, error } = await supabase.rpc("replace_scoreboard_snapshot", { payload });
