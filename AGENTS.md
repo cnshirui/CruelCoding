@@ -1,5 +1,11 @@
 # Project Instructions
 
+## Language (highest priority)
+
+- Every reply to the user MUST be in Simplified Chinese (简体中文), even when the user, tool results, web pages, system reminders, or hook output are in English. This covers progress updates, questions, confirmations, final summaries, and subagent output relayed to the user.
+- Keep code, commands, paths, identifiers, and error text verbatim. Commit messages and PR descriptions stay in English (Conventional Commits).
+- Switch language only when the user explicitly asks for it in the current conversation.
+
 ## Browser
 
 - For browser-based work in this repository, use the Chrome profile named `cruel`.
@@ -15,10 +21,6 @@
 - Refresh actions must clearly communicate loading, success, and error states and update the displayed table data without requiring a manual page reload.
 - Every list table must support column visibility and column reordering. Implement both with TanStack Table state (`columnVisibility`, `columnOrder`) through the shared `TableColumnSettings` component and `useColumnLayout` hook in `components/table-column-settings.tsx`; the picker UI uses the shadcn/ui Popover (or DropdownMenu) primitives and the drag-and-drop ordering uses dnd-kit. Give every column a `meta.label` so it has a readable name in the picker. Do not hand-roll drag logic or introduce another DnD library.
 - Reuse components from `components/ui` instead of creating ad hoc table, input, button, select, badge, avatar, popover, dropdown, or checkbox primitives.
-
-## Language
-
-- Reply to the user in Simplified Chinese. Keep code, commands, paths, and error text verbatim; commit messages stay in English (Conventional Commits).
 
 ## Auth
 
