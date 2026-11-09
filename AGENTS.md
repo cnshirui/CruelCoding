@@ -18,6 +18,24 @@
 
 <!-- BEGIN:nextjs-agent-rules -->
 
+## Language
+
+- Reply to the user in Simplified Chinese. Keep code, commands, paths, and error text verbatim; commit messages stay in English (Conventional Commits).
+
+## Auth
+
+- Login is Google-only through Supabase OAuth (`loginWithGoogle` in `app/auth/actions.ts`). Do not reintroduce email/password or activation-code signup unless asked.
+
+## Scoreboard data
+
+- Contest `start_time` comes from LeetCode's `contestV2HistoryContests`, not from WisdomPeak. Both import paths must upsert it into `contests`: `scripts/02-data-import.mjs` (GitHub Action `refresh-scoreboard.yml`) and `lib/leaderboard-refresh.ts` (in-app refresh). If either skips it, the scoreboard header shows `PDT` with no date.
+- The Action only imports when the `lc-score-board` upstream changed; backfill with `gh workflow run refresh-scoreboard.yml -f force=true`.
+
+## Deploy
+
+- Pushing to `main` triggers a Vercel production deploy through the Git integration. Don't also run `vercel deploy --prod`, or you get a duplicate production build.
+- Remote `main` often has new `chore(data)` commits from the Action; `git pull --rebase` before pushing.
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
