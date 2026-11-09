@@ -80,6 +80,7 @@ export const isAdmin = cache(async () => {
   const session = await getSession();
   if (!session) return false;
   const admins = (process.env.RED_POCKET_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
-  const { data } = await adminDb().from("app_users").select("email,role").eq("id", session.id).maybeSingle();
-  return Boolean(data && (data.role === "sys_admin" || admins.includes(data.email)));
+  const { data } = await adminDb().from("app_users").select("email,role,google_sub").eq("id", session.id).maybeSingle();
+  // Email sign-ups are unverified, so an admin email only counts once Google has proven it.
+  return Boolean(data && (data.role === "sys_admin" || (data.google_sub && admins.includes(data.email))));
 });

@@ -44,12 +44,19 @@ export async function GET(request: NextRequest) {
   }
 
   const db = adminDb();
-  const columns = "id,email,name,role,google_sub";
+  const columns = "id,email,name,role,google_sub,password_hash";
   const { data: bySub } = await db.from("app_users").select(columns).eq("google_sub", claims.sub).maybeSingle();
   const { data: byEmail } = bySub ? { data: null } : await db.from("app_users").select(columns).eq("email", email).maybeSingle();
   // Link by email only to an account no Google identity has claimed yet.
   if (byEmail?.google_sub && byEmail.google_sub !== claims.sub) return fail(request, "This email is linked to a different Google account.");
-  const existing = bySub ?? byEmail;
+  // An unverified email sign-up for this address may belong to someone else, and their session
+  // cookie (stateless, keyed by id) would survive a merge. Delete the row (cascades its AI-group
+  // data) so Google gets a fresh id and every old cookie points at nothing.
+  if (byEmail && !byEmail.google_sub && byEmail.password_hash) {
+    const { error: deleteError } = await db.from("app_users").delete().eq("id", byEmail.id);
+    if (deleteError) return fail(request, "Your account could not be saved.");
+  }
+  const existing = bySub ?? (byEmail?.password_hash && !byEmail.google_sub ? null : byEmail);
   const name = existing?.name || claims.name?.trim() || email.split("@")[0];
   const { data: user, error } = existing
     ? await db.from("app_users").update({ google_sub: claims.sub, email, name, last_login_at: new Date().toISOString() }).eq("id", existing.id).select(columns).single()
