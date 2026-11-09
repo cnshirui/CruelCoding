@@ -37,7 +37,7 @@
 
 ## Deploy
 
-- Pushing to `main` triggers a Vercel Git deployment that can finish minutes later — after a `vercel deploy --prod` — and silently become production, even with older code. After any deploy, check `vercel inspect cruelcoding.com` points at a build of HEAD and that `https://cruelcoding.com/auth/google` returns 307; if an older build took over, `vercel promote <good-deployment-url> --yes`.
+- The Vercel Git integration is disconnected: pushing to `main` does NOT deploy. Deploy production with `./scripts/01-vercel-deploy.sh production`, then check `vercel inspect cruelcoding.com` points at the new deployment and `https://cruelcoding.com/auth/google` returns 307.
 - Remote `main` often has new `chore(data)` commits from the Action; `git pull --rebase` before pushing.
 
 <!-- BEGIN:nextjs-agent-rules -->
