@@ -1,6 +1,5 @@
-import type { User } from "@supabase/supabase-js";
 import { agentCourses } from "@/lib/ai-agent-courses";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { adminDb, getSession, type SessionUser } from "@/lib/auth";
 
 export type AiMemberStatus = "pending" | "approved" | "rejected";
 export type AiMember = { user_id: string; display_name: string; status: AiMemberStatus; applied_at: string; reviewed_at: string | null };
@@ -13,10 +12,8 @@ export const courseOptions = agentCourses.map((course) => ({ code: course.code, 
 export const courseCodes = courseOptions.map((course) => course.code);
 export const courseTitle = (code: string) => courseOptions.find((course) => course.code === code)?.title ?? code;
 
-export function displayNameOf(user: User | null | undefined) {
-  const metadata = user?.user_metadata as Record<string, unknown> | undefined;
-  const name = [metadata?.full_name, metadata?.name, metadata?.preferred_username, metadata?.user_name].find((value): value is string => typeof value === "string" && value.trim().length > 0);
-  return name?.trim() || user?.email?.split("@")[0] || "成员";
+export function displayNameOf(user: SessionUser | null | undefined) {
+  return user?.name?.trim() || user?.email?.split("@")[0] || "成员";
 }
 
 // 残酷AI群 members are in China, so "today" follows Beijing time.
@@ -30,15 +27,15 @@ type RawCheckin = Omit<AiCheckin, "display_name" | "comment_count"> & { member: 
 const shapeCheckin = ({ member, comments, ...checkin }: RawCheckin): AiCheckin => ({ ...checkin, display_name: member?.display_name ?? "成员", comment_count: comments?.[0]?.count ?? 0 });
 
 export async function getAiViewer() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = adminDb();
+  const user = await getSession();
   if (!user) return { supabase, user: null, member: null };
   const { data } = await supabase.from("ai_group_members").select(memberColumns).eq("user_id", user.id).maybeSingle();
   return { supabase, user, member: (data as AiMember | null) ?? null };
 }
 
 export async function getAiMembers(): Promise<AiMember[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = adminDb();
   const { data, error } = await supabase.from("ai_group_members").select(memberColumns).order("applied_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as AiMember[];
@@ -46,7 +43,7 @@ export async function getAiMembers(): Promise<AiMember[]> {
 
 // ponytail: latest 500 rows per view; add server paging when the group outgrows it.
 export async function getAiCheckins(filters: AiCheckinFilters = {}, limit = 500): Promise<AiCheckin[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = adminDb();
   let query = supabase.from("checkins").select(checkinColumns).not("user_id", "is", null).order("checkin_date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
   if (filters.course) query = query.eq("course_code", filters.course);
   if (filters.date) query = query.eq("checkin_date", filters.date);
@@ -57,7 +54,7 @@ export async function getAiCheckins(filters: AiCheckinFilters = {}, limit = 500)
 }
 
 export async function getAiCheckin(id: number): Promise<{ checkin: AiCheckin; comments: AiComment[] } | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = adminDb();
   const [{ data: checkin }, { data: comments }] = await Promise.all([
     supabase.from("checkins").select(checkinColumns).eq("id", id).not("user_id", "is", null).maybeSingle(),
     supabase.from("checkin_comments").select("id,user_id,body,created_at,member:ai_group_members(display_name)").eq("checkin_id", id).order("created_at", { ascending: true }),
@@ -71,7 +68,7 @@ export async function getAiCheckin(id: number): Promise<{ checkin: AiCheckin; co
 }
 
 export async function getAiStats(): Promise<AiMemberStats[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = adminDb();
   const [members, { data, error }] = await Promise.all([
     getAiMembers(),
     supabase.from("checkins").select("user_id,checkin_date,course_code").not("user_id", "is", null).order("checkin_date", { ascending: false }).limit(10_000),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const SLUG = /^[a-z0-9-]+$/;
@@ -34,8 +34,7 @@ async function inspectMember(cruelId: string, slug: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await createSupabaseServerClient();
-  const { data: { user } } = await auth.auth.getUser();
+  const user = await getSession();
   if (!user) return NextResponse.json({ error: "Log in first." }, { status: 401 });
 
   const body = await request.json() as { date?: string; number?: string; slug?: string };

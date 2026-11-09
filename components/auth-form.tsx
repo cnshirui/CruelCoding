@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { loginWithGoogle } from "@/app/auth/actions";
-
 export function AuthForm({ error, message, next }: { error?: string; message?: string; next?: string }) {
   return (
     <main className="auth-page">
@@ -13,7 +11,7 @@ export function AuthForm({ error, message, next }: { error?: string; message?: s
         </div>
       </section>
       <section className="auth-form-wrap">
-        <form className="auth-form" action={loginWithGoogle}>
+        <form className="auth-form" action="/auth/google" method="get">
           <input name="next" type="hidden" value={next ?? ""} />
           <Link className="auth-back-link" href="/">← Back to rankings</Link>
           <h2>Log in</h2>

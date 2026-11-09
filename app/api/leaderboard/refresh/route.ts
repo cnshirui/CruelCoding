@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth";
 import { refreshLeaderboard } from "@/lib/leaderboard-refresh";
 
 export const runtime = "nodejs";
@@ -20,8 +20,7 @@ function secondsUntilFree(refreshedAt: string) {
 
 export async function POST() {
   try {
-    const auth = await createSupabaseServerClient();
-    const { data: { user } } = await auth.auth.getUser();
+    const user = await getSession();
     if (!user) return NextResponse.json({ error: "登录后才能刷新排行榜。" }, { status: 401 });
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

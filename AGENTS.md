@@ -16,15 +16,16 @@
 - Every list table must support column visibility and column reordering. Implement both with TanStack Table state (`columnVisibility`, `columnOrder`) through the shared `TableColumnSettings` component and `useColumnLayout` hook in `components/table-column-settings.tsx`; the picker UI uses the shadcn/ui Popover (or DropdownMenu) primitives and the drag-and-drop ordering uses dnd-kit. Give every column a `meta.label` so it has a readable name in the picker. Do not hand-roll drag logic or introduce another DnD library.
 - Reuse components from `components/ui` instead of creating ad hoc table, input, button, select, badge, avatar, popover, dropdown, or checkbox primitives.
 
-<!-- BEGIN:nextjs-agent-rules -->
-
 ## Language
 
 - Reply to the user in Simplified Chinese. Keep code, commands, paths, and error text verbatim; commit messages stay in English (Conventional Commits).
 
 ## Auth
 
-- Login is Google-only through Supabase OAuth (`loginWithGoogle` in `app/auth/actions.ts`). Do not reintroduce email/password or activation-code signup unless asked.
+- Supabase Auth is NOT used. Login is self-implemented, Google-only: `app/auth/google` (OAuth code flow, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) issues an HMAC-signed `cc_session` cookie (`AUTH_SECRET`, `lib/auth.ts`). Accounts live in `public.app_users`.
+- Server code gets the user from `getSession()` and talks to the database with `adminDb()` (secret key). RLS does not know the user, so every write must take `user_id` from the session, never from the request. `proxy.ts` gates non-public pages.
+- Admins: `app_users.role = 'sys_admin'` or `RED_POCKET_ADMIN_EMAILS` (`isAdmin()`). Role/name changes apply at next login.
+- Seed accounts live in `data/users.csv` (`email,name,role`, no passwords — the repo is public) and are upserted into `app_users` by `scripts/lib/import-auth-users.mjs` on every `npm run data:import`.
 
 ## Scoreboard data
 
@@ -33,8 +34,10 @@
 
 ## Deploy
 
-- Pushing to `main` triggers a Vercel production deploy through the Git integration. Don't also run `vercel deploy --prod`, or you get a duplicate production build.
+- Pushing to `main` does NOT deploy; production deploys run `vercel deploy --prod --yes`. Deploy from a clean `git worktree` of the commit when the working tree has unrelated changes.
 - Remote `main` often has new `chore(data)` commits from the Action; `git pull --rebase` before pushing.
+
+<!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
 

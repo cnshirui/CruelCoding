@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AuthNav } from "@/components/auth-nav";
 import { HomeTabs } from "@/components/home-tabs";
 import { getLeaderboard } from "@/lib/supabase";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth";
 import { SiteTabs } from "@/components/site-tabs";
 import { isRedPocketAdmin } from "@/lib/red-pocket-admin";
 
@@ -11,9 +11,7 @@ export const dynamic = "force-dynamic";
 // Refreshing is open to every signed-in member, so the button only needs to know that much.
 async function isSignedIn() {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data } = await supabase.auth.getClaims();
-    return Boolean(data?.claims?.sub);
+    return Boolean(await getSession());
   } catch {
     return false;
   }

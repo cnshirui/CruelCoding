@@ -1,7 +1,6 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { signupAdminClient } from "@/lib/signup-activation";
 import { isRedPocketAdmin } from "@/lib/red-pocket-admin";
 import { beijingDateKey, courseCodes, displayNameOf, getAiViewer } from "@/lib/ai-group";
 
@@ -53,11 +52,11 @@ export async function addComment(_: ActionState, formData: FormData): Promise<Ac
 
 export async function reviewMember(_: ActionState, formData: FormData): Promise<ActionState> {
   if (!(await isRedPocketAdmin())) return fail("只有管理员可以审核。");
-  const { user } = await getAiViewer();
+  const { supabase, user } = await getAiViewer();
   const userId = String(formData.get("user_id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(userId) || !["approved", "rejected"].includes(status)) return fail("请求格式不正确。");
-  const { error } = await signupAdminClient().from("ai_group_members")
+  const { error } = await supabase.from("ai_group_members")
     .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: user?.id ?? null }).eq("user_id", userId);
   if (error) return fail(error.message);
   refresh();

@@ -22,6 +22,8 @@ function parseCsv(text) {
   );
 }
 
+// Seeds app_users (the app's own accounts, Google sign-in only) from data/users.csv: email,name,role.
+// Existing rows keep their id and google_sub; name and role follow the CSV.
 export async function importAuthUsers(supabase, csvPath) {
   const records = parseCsv(await readFile(csvPath, "utf8"));
   if (!records.length) throw new Error("data/users.csv has no users");
@@ -29,40 +31,18 @@ export async function importAuthUsers(supabase, csvPath) {
   for (const [index, record] of records.entries()) {
     record.email = record.email.toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(record.email)) throw new Error(`Row ${index + 2}: invalid email`);
-    if (record.password.length < 8) throw new Error(`Row ${index + 2}: password must be at least 8 characters`);
     if (!record.name) throw new Error(`Row ${index + 2}: name is required`);
-    if (!/^[a-z][a-z0-9_-]*$/i.test(record.role)) throw new Error(`Row ${index + 2}: invalid role`);
+    if (!/^[a-z][a-z0-9_-]*$/.test(record.role)) throw new Error(`Row ${index + 2}: invalid role`);
     if (seen.has(record.email)) throw new Error(`Row ${index + 2}: duplicate email`);
     seen.add(record.email);
   }
 
-  const existingByEmail = new Map();
-  for (let page = 1; ; page += 1) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    data.users.forEach((user) => existingByEmail.set(user.email?.toLowerCase(), user));
-    if (data.users.length < 1000) break;
-  }
-
-  let created = 0, updated = 0;
-  for (const record of records) {
-    const attributes = {
-      email: record.email,
-      password: record.password,
-      email_confirm: true,
-      user_metadata: { name: record.name },
-      app_metadata: { role: record.role },
-    };
-    const existing = existingByEmail.get(record.email);
-    if (existing) {
-      const { error } = await supabase.auth.admin.updateUserById(existing.id, attributes);
-      if (error) throw new Error(`Could not update ${record.email}: ${error.message}`);
-      updated += 1;
-    } else {
-      const { error } = await supabase.auth.admin.createUser(attributes);
-      if (error) throw new Error(`Could not create ${record.email}: ${error.message}`);
-      created += 1;
-    }
-  }
-  return { created, updated };
+  const { data: existing, error: lookupError } = await supabase.from("app_users").select("email").in("email", [...seen]);
+  if (lookupError) throw lookupError;
+  const { error } = await supabase.from("app_users").upsert(
+    records.map(({ email, name, role }) => ({ email, name, role })),
+    { onConflict: "email" },
+  );
+  if (error) throw new Error(`Could not import users: ${error.message}`);
+  return { created: records.length - existing.length, updated: existing.length };
 }
