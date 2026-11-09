@@ -39,8 +39,10 @@ function contestResult(member: LeaderboardMember, contest: number) {
 }
 
 function ContestDate({ value }: { value: string }) {
-  const date = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" }).format(new Date(value));
-  return <time dateTime={value} suppressHydrationWarning>{date} · PDT</time>;
+  // timeZoneName gives PDT or PST depending on the contest date, instead of a hard-coded PDT.
+  const parts = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles", timeZoneName: "short" }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
+  return <time dateTime={value} suppressHydrationWarning>{part("month")} {part("day")} · {part("timeZoneName")}</time>;
 }
 
 export function Leaderboard({ members, contestDates, redPockets = {}, contestIds = {}, isRedPocketAdmin = false, canRefresh = false }: { members: LeaderboardMember[]; contestDates: ContestDates; redPockets?: RedPocketMarks; contestIds?: ContestIds; isRedPocketAdmin?: boolean; canRefresh?: boolean }) {
@@ -60,7 +62,7 @@ export function Leaderboard({ members, contestDates, redPockets = {}, contestIds
     { accessorKey: "score", header: ({ column }) => <SortHeader label="Score" column={column} />, meta: { label: "Score", width: 78 }, cell: ({ row }) => <strong>{row.original.score.toFixed(1)}</strong> },
     ...visibleContests.map((contest): ColumnDef<LeaderboardMember> => ({
       id: `contest-${contest}`,
-      header: () => <span className="contest-table-heading"><strong>Weekly {contest}</strong>{contestDates[contest] ? <ContestDate value={contestDates[contest]} /> : <small>PDT</small>}</span>,
+      header: () => <span className="contest-table-heading"><strong>Weekly {contest}</strong>{contestDates[contest] ? <ContestDate value={contestDates[contest]} /> : <small>PT</small>}</span>,
       meta: { label: `Weekly ${contest}` },
       columns: [
         // Members without a result (or without a rank) return undefined so `sortUndefined: "last"` keeps them at the bottom in both directions.
