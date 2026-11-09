@@ -10,7 +10,7 @@ export const OAUTH_COOKIE = "cc_oauth";
 
 export function safeNext(value: string | null | undefined) {
   // Same-origin paths only: no "//host", no "/\\host" (browsers treat \ as /), no whitespace/control chars.
-  return value && /^\/(?![/\\])[^\\\s]*$/.test(value) ? value : "/account";
+  return value && /^\/(?![/\\])[^\\\s]*$/.test(value) ? value : "/";
 }
 const SESSION_DAYS = 30;
 
