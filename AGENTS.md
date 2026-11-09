@@ -34,7 +34,7 @@
 
 ## Deploy
 
-- Pushing to `main` does NOT deploy; production deploys run `vercel deploy --prod --yes`. Deploy from a clean `git worktree` of the commit when the working tree has unrelated changes.
+- Pushing to `main` triggers a Vercel Git deployment that can finish minutes later — after a `vercel deploy --prod` — and silently become production, even with older code. After any deploy, check `vercel inspect cruelcoding.com` points at a build of HEAD and that `https://cruelcoding.com/auth/google` returns 307; if an older build took over, `vercel promote <good-deployment-url> --yes`.
 - Remote `main` often has new `chore(data)` commits from the Action; `git pull --rebase` before pushing.
 
 <!-- BEGIN:nextjs-agent-rules -->
