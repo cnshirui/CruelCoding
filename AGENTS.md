@@ -22,7 +22,7 @@
 
 ## Auth
 
-- Supabase Auth is NOT used. Login is self-implemented, Google-only: `app/auth/google` (OAuth code flow, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) issues an HMAC-signed `cc_session` cookie (`AUTH_SECRET`, `lib/auth.ts`). Accounts live in `public.app_users`.
+- Supabase Auth is NOT used. Login is self-implemented: Google (`app/auth/google`, OAuth code flow, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`) or email + password (`app/auth/actions.ts`, scrypt hash in `app_users.password_hash`, no email verification). Both issue an HMAC-signed `cc_session` cookie (`AUTH_SECRET`, `lib/auth.ts`). Accounts live in `public.app_users`.
 - Server code gets the user from `getSession()` and talks to the database with `adminDb()` (secret key). RLS does not know the user, so every write must take `user_id` from the session, never from the request. `proxy.ts` gates non-public pages.
 - Admins: `app_users.role = 'sys_admin'` or `RED_POCKET_ADMIN_EMAILS` (`isAdmin()`, re-read from the database on every check).
 - Seed accounts live in `data/users.csv` (`email,name,role`, no passwords — the repo is public) and are upserted into `app_users` by `scripts/lib/import-auth-users.mjs` on every `npm run data:import`.

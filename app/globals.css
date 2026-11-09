@@ -300,6 +300,8 @@ small { display:block; margin-top:3px; color:var(--muted-text); }
 .activation-button:disabled { opacity:.55; cursor:wait; }
 .primary-button { min-height:48px; padding:0 22px; border:0; border-radius:9px; color:white; background:#1d4f42; font:inherit; font-weight:700; cursor:pointer; }
 .auth-form .primary-button { width:100%; margin-top:10px; }
+.auth-secondary-button { margin-top:10px; }
+.auth-divider { margin:20px 0; color:var(--muted-text); font-size:13px; text-align:center; }
 .form-switch { margin-top:24px; color:var(--muted-text); text-align:center; }
 .form-switch a { color:var(--ink); }
 .form-alert { padding:12px 14px; border-radius:8px; font-size:14px; line-height:1.4; }

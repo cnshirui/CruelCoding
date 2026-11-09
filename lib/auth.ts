@@ -1,6 +1,7 @@
 import "server-only";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
@@ -44,6 +45,21 @@ export function readSessionToken(token: string | undefined): SessionUser | null 
   } catch {
     return null;
   }
+}
+
+const scryptAsync = promisify(scrypt) as (password: string, salt: string, keylen: number) => Promise<Buffer>;
+
+export async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("base64url");
+  return `scrypt:${salt}:${(await scryptAsync(password, salt, 64)).toString("base64url")}`;
+}
+
+export async function verifyPassword(password: string, stored: string | null | undefined) {
+  const [scheme, salt, hash] = (stored ?? "").split(":");
+  if (scheme !== "scrypt" || !salt || !hash) return false;
+  const expected = Buffer.from(hash, "base64url");
+  const actual = await scryptAsync(password, salt, 64);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 export const getSession = cache(async () => readSessionToken((await cookies()).get(SESSION_COOKIE)?.value));
